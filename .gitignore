@@ -1,0 +1,10 @@
+# Variables de entorno
+.env
+# Archivos generados por CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Directorios de compilación
+/build/
