@@ -1,9 +1,9 @@
 #include <cpprest/json.h>
 #include <sodium.h>
 #include <jwt-cpp/jwt.h>
-#include "controllers/auth/AuthController.h"
+#include "controllers/AuthController.h"
 #include "db/DatabaseConnection.h"
-#include "model/UserModel.h"
+#include "controllers/UserController.h"
 #include "env/EnvLoader.h"
 #include <cpprest/http_client.h>
 #include "services/jwt/JwtService.h"
@@ -47,8 +47,9 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
                             return; // exit lambda
                         }
 
-                        // Llamar a UserModel::createUser
-                        bool success = UserModel::createUser(name, hashed, email, db);
+                        // Llamar al controlador de usuarios
+                        UserController userController(db);
+                        bool success = userController.createUser(name, hashed, email);
 
                         if (success) {
                             std::string secret = env.get("JWT_SECRET", "");

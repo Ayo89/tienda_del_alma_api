@@ -2,7 +2,7 @@
 #define ROUTER_H
 
 #include <cpprest/http_listener.h>
-#include "controllers/auth/AuthController.h"
+#include "controllers/AuthController.h"
 #include "db/DatabaseConnection.h"
 
 class Router

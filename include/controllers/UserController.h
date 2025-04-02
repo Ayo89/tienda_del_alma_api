@@ -1,19 +1,19 @@
 #ifndef USERCONTROLLER_H
 #define USERCONTROLLER_H
 
-#include "UserModel.h"
-#include "AddressModel.h"
-#include <iostream>
-#include <vector>
-#include "model/DatabaseConnection.h" // Ajustado para tu estructura
+#include "model/UserModel.h"
+#include <string>
 
 class UserController
 {
 private:
-    static bool createUser(const std::string &username,
-                           const std::string &password,
-                           const std::string &email,
-                           DatabaseConnection &db);
+    UserModel model;
+
+public:
+    UserController(DatabaseConnection &db) : model(db) {} // Pasamos db al constructor de UserModel
+    bool createUser(const std::string &name,
+                    const std::string &password,
+                    const std::string &email);
 };
 
 #endif

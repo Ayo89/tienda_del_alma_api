@@ -4,15 +4,14 @@
 #include <string>
 #include <vector>
 #include "AddressModel.h"
-#include "db/DatabaseConnection.h" // Ajustado para tu estructura
+#include "db/DatabaseConnection.h"
 
 class UserModel
 {
+private:
+    DatabaseConnection &db; // Referencia almacenada
 public:
-    static bool createUser(const std::string &name,
-                           const std::string &password,
-                           const std::string &email,
-                           DatabaseConnection &db);
+    UserModel(DatabaseConnection &database) : db(database) {}
+    bool createUser(const std::string &name, const std::string &password, const std::string &email);
 };
-
 #endif

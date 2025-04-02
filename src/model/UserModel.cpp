@@ -5,8 +5,7 @@
 
 bool UserModel::createUser(const std::string &name,
                            const std::string &password,
-                           const std::string &email,
-                           DatabaseConnection &db)
+                           const std::string &email)
 {
     // Validaciones básicas
     if (name.empty() || password.empty() || email.empty())
