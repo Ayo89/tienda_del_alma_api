@@ -1,18 +1,19 @@
 #include <cpprest/json.h>
 #include <sodium.h>
 #include <jwt-cpp/jwt.h>
-#include "auth/Authentication.h"
+#include "controllers/auth/AuthController.h"
 #include "db/DatabaseConnection.h"
 #include "model/UserModel.h"
 #include "env/EnvLoader.h"
 #include <cpprest/http_client.h>
+#include "services/jwt/JwtService.h"
 #include <future> // Para usar std::async
 
 using namespace web;
 using namespace web::http;
 using namespace web::http::client;
 
-http_response Authentication::signup(const http_request &request, DatabaseConnection &db)
+http_response AuthController::signup(const http_request &request, DatabaseConnection &db)
 {
     // Creación de una respuesta predeterminada, que se completará al final del proceso
     http_response response(status_codes::OK);
@@ -61,12 +62,7 @@ http_response Authentication::signup(const http_request &request, DatabaseConnec
                                 return;
                             }
 
-                            auto token = jwt::create()
-                                             .set_issuer("tienda_del_alma")
-                                             .set_payload_claim("name", jwt::claim(name))
-                                             .set_payload_claim("email", jwt::claim(email))
-                                             .set_expires_at(std::chrono::system_clock::now() + std::chrono::hours(24))
-                                             .sign(jwt::algorithm::hs256{secret});
+                            auto token = JwtService::generateToken(name, email);
 
                             response.set_status_code(status_codes::Created); // 201 Created
                             response.set_body(json::value::object({{U("message"), json::value::string(U("Usuario creado exitosamente"))},

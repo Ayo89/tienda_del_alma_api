@@ -6,7 +6,7 @@
 #include <string>
 #include "db/DatabaseConnection.h"
 
-class Authentication
+class AuthController
 {
 public:
     static web::http::http_response signup(const web::http::http_request &request, DatabaseConnection &db);

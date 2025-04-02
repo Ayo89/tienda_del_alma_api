@@ -31,8 +31,9 @@ add_executable(tienda_del_alma
     main.cpp 
     src/db/DatabaseConnection.cpp
     src/server/Server.cpp
+    src/services/jwt/JwtService.cpp
+    src/controllers/auth/AuthController.cpp
     src/model/UserModel.cpp
-    src/auth/Authentication.cpp
     src/env/EnvLoader.cpp
     src/router/Router.cpp
 )

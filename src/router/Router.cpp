@@ -17,7 +17,7 @@ void Router::setup_routes()
     listener_.support(web::http::methods::POST, [this](const web::http::http_request &request)
                       {
         if (request.relative_uri().path() == U("/signup")) {
-            web::http::http_response response = Authentication::signup(request, db_);
+            web::http::http_response response = AuthController::signup(request, db_);
             Server::add_cors_headers(response); // Añades los encabezados CORS
             request.reply(response);
         } else {

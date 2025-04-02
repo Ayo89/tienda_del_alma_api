@@ -2,7 +2,7 @@
 
 #include <sodium.h>
 #include "db/DatabaseConnection.h"
-#include "auth/Authentication.h"
+#include "controllers/auth/AuthController.h"
 #include "server/Server.h"
 #include "env/EnvLoader.h"
 #include <iostream>

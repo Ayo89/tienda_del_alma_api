@@ -71,6 +71,10 @@
         "mutex": "cpp",
         "sstream": "cpp",
         "typeindex": "cpp",
-        "*.dat": "cpp"
+        "*.dat": "cpp",
+        "forward_list": "cpp",
+        "future": "cpp",
+        "ranges": "cpp",
+        "valarray": "cpp"
     }
 }
