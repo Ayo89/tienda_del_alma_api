@@ -12,6 +12,6 @@ private:
     DatabaseConnection &db; // Referencia almacenada
 public:
     UserModel(DatabaseConnection &database) : db(database) {}
-    bool createUser(const std::string &name, const std::string &password, const std::string &email);
+    bool createUser(const std::string &first_name, const std::string &password, const std::string &email);
 };
 #endif

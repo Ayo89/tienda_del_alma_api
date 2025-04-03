@@ -61,3 +61,4 @@ MYSQL *DatabaseConnection::getConnection()
 {
     return connection;
 }
+

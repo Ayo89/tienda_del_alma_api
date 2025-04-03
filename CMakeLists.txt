@@ -30,13 +30,14 @@ include_directories(${MYSQL_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include ${OPENSSL_
 add_executable(tienda_del_alma 
     main.cpp 
     src/db/DatabaseConnection.cpp
+    src/db/DatabaseInitializer.cpp
     src/server/Server.cpp
-    src/services/jwt/JwtService.cpp
-    src/controllers/AuthController.cpp
-    src/model/UserModel.cpp
-    src/controllers/UserController.cpp
     src/env/EnvLoader.cpp
+    src/services/jwt/JwtService.cpp
     src/router/Router.cpp
+    src/controllers/AuthController.cpp
+    src/controllers/UserController.cpp
+    src/model/UserModel.cpp
 )
 
 # Vincular bibliotecas

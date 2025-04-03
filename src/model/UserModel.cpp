@@ -3,12 +3,12 @@
 #include <cstring>
 #include <iostream>
 
-bool UserModel::createUser(const std::string &name,
+bool UserModel::createUser(const std::string &first_name,
                            const std::string &password,
                            const std::string &email)
 {
     // Validaciones básicas
-    if (name.empty() || password.empty() || email.empty())
+    if (first_name.empty() || password.empty() || email.empty())
     {
         std::cerr << "Error: name, password, or email cannot be empty" << std::endl;
         return false;
@@ -21,9 +21,9 @@ bool UserModel::createUser(const std::string &name,
         std::cerr << "Error: No active database connection" << std::endl;
         return false;
     }
-
+    std::cout << "first name: " << first_name << std::endl;
     // Preparar la consulta
-    const char *query = "INSERT INTO users (name, password, email) VALUES (?, ?, ?)";
+    const char *query = "INSERT INTO users (first_name, password, email) VALUES (?, ?, ?)";
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
     if (!stmt)
     {
@@ -43,8 +43,8 @@ bool UserModel::createUser(const std::string &name,
     memset(bind, 0, sizeof(bind));
 
     bind[0].buffer_type = MYSQL_TYPE_STRING;
-    bind[0].buffer = (void *)name.c_str();
-    bind[0].buffer_length = name.length();
+    bind[0].buffer = (void *)first_name.c_str();
+    bind[0].buffer_length = first_name.length();
 
     bind[1].buffer_type = MYSQL_TYPE_STRING;
     bind[1].buffer = (void *)password.c_str();
@@ -69,7 +69,7 @@ bool UserModel::createUser(const std::string &name,
         return false;
     }
 
-    std::cout << "User created successfully: " << name << std::endl;
+    std::cout << "User created successfully: " << first_name << std::endl;
     mysql_stmt_close(stmt);
     return true;
 }

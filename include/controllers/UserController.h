@@ -11,7 +11,7 @@ private:
 
 public:
     UserController(DatabaseConnection &db) : model(db) {} // Pasamos db al constructor de UserModel
-    bool createUser(const std::string &name,
+    bool createUser(const std::string &first_name,
                     const std::string &password,
                     const std::string &email);
 };

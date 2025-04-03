@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cpprest/http_listener.h>
 #include <cpprest/json.h>
+#include "db/DatabaseInitializer.h"
 
 using namespace web;
 using namespace web::http;
@@ -46,7 +47,11 @@ int main()
         wcout << L"Error: No se pudo conectar a la base de datos" << endl;
         return 1;
     }
-    
+    DatabaseInitializer dbInizializer(db);
+    if (!dbInizializer.initialize(true))
+    {
+        wcout << L"Error: No se pudo inicializar la base de datos" << endl;
+    }
 
     try
     {

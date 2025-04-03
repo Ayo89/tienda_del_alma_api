@@ -24,6 +24,7 @@ public:
     bool connect();
     void close();
     MYSQL *getConnection();
+
 };
 
 #endif // DATABASE_CONNECTION_H

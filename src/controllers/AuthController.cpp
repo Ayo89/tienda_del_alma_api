@@ -31,7 +31,7 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
                     // Verificar que el cuerpo sea un objeto JSON válido
                     if (body.is_object()) {
                         // Extraer los campos del JSON
-                        auto name = utility::conversions::to_utf8string(body.at(U("name")).as_string());
+                        auto first_name = utility::conversions::to_utf8string(body.at(U("first_name")).as_string());
                         std::string password = body.at(U("password")).as_string();
                         auto email = utility::conversions::to_utf8string(body.at(U("email")).as_string());
 
@@ -49,7 +49,7 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
 
                         // Llamar al controlador de usuarios
                         UserController userController(db);
-                        bool success = userController.createUser(name, hashed, email);
+                        bool success = userController.createUser(first_name, hashed, email);
 
                         if (success) {
                             std::string secret = env.get("JWT_SECRET", "");
@@ -63,7 +63,7 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
                                 return;
                             }
 
-                            auto token = JwtService::generateToken(name, email);
+                            auto token = JwtService::generateToken(first_name, email);
 
                             response.set_status_code(status_codes::Created); // 201 Created
                             response.set_body(json::value::object({{U("message"), json::value::string(U("Usuario creado exitosamente"))},
