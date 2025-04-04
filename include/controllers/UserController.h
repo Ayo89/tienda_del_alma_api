@@ -1,6 +1,6 @@
 #ifndef USERCONTROLLER_H
 #define USERCONTROLLER_H
-
+#include "db/DatabaseConnection.h"
 #include "model/UserModel.h"
 #include <string>
 

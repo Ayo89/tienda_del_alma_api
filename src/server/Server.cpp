@@ -23,7 +23,15 @@ void Server::stop()
 
 void Server::add_cors_headers(http_response &response)
 {
-    response.headers().add(U("Access-Control-Allow-Origin"), U("*")); // O usa un origen específico como U("http://localhost:3000")
+    response.headers().add(U("Access-Control-Allow-Origin"), U("http://localhost:5173")); // O usa un origen específico como U("http://localhost:3000")
     response.headers().add(U("Access-Control-Allow-Methods"), U("GET, POST, PUT, DELETE, OPTIONS"));
     response.headers().add(U("Access-Control-Allow-Headers"), U("Content-Type, Authorization"));
+    response.headers().add(U("Access-Control-Allow-Credentials"), U("true"));
+}
+
+void Server::add_cookie(http_response &response, const std::string &cookie_value)
+{
+    // Se arma la cookie. Aquí puedes personalizar las flags según lo necesites.
+    std::string cookie = "token=" + cookie_value + ";   SameSite=none; Path=/";
+    response.headers().add(U("Set-Cookie"), utility::conversions::to_string_t(cookie));
 }

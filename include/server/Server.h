@@ -16,6 +16,7 @@ public:
 
     // Métodos para controlar el servidor
     static void add_cors_headers(http_response &response);
+    static void add_cookie(web::http::http_response &response, const std::string &cookie_value);
     void start();
     void stop();
 

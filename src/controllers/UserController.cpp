@@ -1,6 +1,5 @@
 #include "controllers/UserController.h"
 #include <iostream>
-
 bool UserController::createUser(const std::string &first_name,
                                 const std::string &password,
                                 const std::string &email)

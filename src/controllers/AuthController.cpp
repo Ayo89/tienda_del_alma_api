@@ -64,7 +64,7 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
                             }
 
                             auto token = JwtService::generateToken(first_name, email);
-
+                            response.headers().add(U("X-Token"), utility::conversions::to_string_t(token));
                             response.set_status_code(status_codes::Created); // 201 Created
                             response.set_body(json::value::object({{U("message"), json::value::string(U("Usuario creado exitosamente"))},
                                                                    {U("token"), json::value::string(utility::conversions::to_string_t(token))}}));
