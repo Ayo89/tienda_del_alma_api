@@ -40,6 +40,7 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "DROP TABLE IF EXISTS categories;",
             "DROP TABLE IF EXISTS shipping_addresses;",
             "DROP TABLE IF EXISTS billing_addresses;",
+            "DROP TABLE IF EXISTS password_resets;",
             "DROP TABLE IF EXISTS users;"};
         for (const char *q : dropQueries)
         {
@@ -59,6 +60,16 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "email VARCHAR(100) NOT NULL UNIQUE, "
             "password VARCHAR(255) NOT NULL, "
             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            ") ENGINE=InnoDB;";
+    if (!executeQuery(query))
+        return false;
+
+    query = "CREATE TABLE password_resets("
+            "id SERIAL PRIMARY KEY, "
+            "user_id INTEGER NOT NULL, "
+            "token_hash TEXT NOT NULL, "
+            "expires_at TIMESTAMP NOT NULL, "
+            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
             ") ENGINE=InnoDB;";
     if (!executeQuery(query))
         return false;

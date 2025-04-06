@@ -10,6 +10,7 @@ class AuthController
 {
 public:
     static web::http::http_response signup(const web::http::http_request &request, DatabaseConnection &db);
+    static web::http::http_response login(const web::http::http_request &request, DatabaseConnection &db);
 };
 
 #endif // AUTHROUTER_H

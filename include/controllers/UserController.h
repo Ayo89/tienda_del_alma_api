@@ -1,8 +1,10 @@
 #ifndef USERCONTROLLER_H
 #define USERCONTROLLER_H
-#include "db/DatabaseConnection.h"
-#include "model/UserModel.h"
+#include <optional>
 #include <string>
+#include "db/DatabaseConnection.h"
+#include "entities/User.h"
+#include "model/UserModel.h"
 
 class UserController
 {
@@ -14,6 +16,9 @@ public:
     bool createUser(const std::string &first_name,
                     const std::string &password,
                     const std::string &email);
+
+    std::optional<User> getUserById(int user_id);
+    std::optional<User> getUserByEmail(const std::string &email);
 };
 
 #endif

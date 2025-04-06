@@ -28,7 +28,7 @@ void Router::setup_routes()
         }
         else if (method == web::http::methods::POST && path == U("/login"))
         {
-            /* response = AuthController::login(request, db_); */
+            response = AuthController::login(request, db_); 
         }
         else if (method == web::http::methods::GET && path == U("/users"))
         {
