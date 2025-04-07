@@ -9,6 +9,7 @@
 #include <cpprest/http_listener.h>
 #include <cpprest/json.h>
 #include "db/DatabaseInitializer.h"
+#include "model/ProductModel.h"
 
 using namespace web;
 using namespace web::http;
@@ -52,7 +53,13 @@ int main()
     {
         wcout << L"Error: No se pudo inicializar la base de datos" << endl;
     }
-
+    // Crear la tabla de productos
+    ProductModel productModel(db);
+    if (!productModel.insertSampleProducts())
+    {
+        wcout << L"Error: No se pudo insertar productos de muestra" << endl;
+    }
+    
     try
     {
         Server server(server_address, db);

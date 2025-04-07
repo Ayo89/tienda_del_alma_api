@@ -1,3 +1,6 @@
+#ifndef DATABASEINITIALIZER_H
+#define DATABASEINITIALIZER_H
+
 #include "db/DatabaseConnection.h"
 
 class DatabaseInitializer
@@ -10,3 +13,5 @@ public:
 private:
     DatabaseConnection &connection;
 };
+
+#endif

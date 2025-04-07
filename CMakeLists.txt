@@ -38,6 +38,7 @@ add_executable(tienda_del_alma
     src/controllers/AuthController.cpp
     src/controllers/UserController.cpp
     src/model/UserModel.cpp
+    src/model/ProductModel.cpp
 )
 
 # Vincular bibliotecas
