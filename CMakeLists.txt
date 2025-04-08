@@ -37,6 +37,7 @@ add_executable(tienda_del_alma
     src/router/Router.cpp
     src/controllers/AuthController.cpp
     src/controllers/UserController.cpp
+    src/controllers/ProductController.cpp
     src/model/UserModel.cpp
     src/model/ProductModel.cpp
 )

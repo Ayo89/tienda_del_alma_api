@@ -20,7 +20,7 @@ void Router::setup_routes()
         auto method = request.method();
         web::http::http_response response(web::http::status_codes::NotFound);
         response.set_body(U("Ruta no encontrada"));
-
+        //USERS
         // Procesar según el método y la ruta
         if (method == web::http::methods::POST && path == U("/signup"))
         {
@@ -35,6 +35,26 @@ void Router::setup_routes()
             /* response = UserController::getUsers(db_); */
         }
 
+
+        //PRODUCTS
+
+        if(method == web::http::methods::GET && path == U("/products"))
+        {
+            ProductController model(db_);
+            response = model.getAllProducts();
+        }
+/*         else if (method == web::http::methods::POST && path == U("/products"))
+        {
+            response = ProductController::addProduct(request, db_);
+        }
+        else if (method == web::http::methods::PUT && path == U("/products"))
+        {
+            response = ProductController::updateProduct(request, db_);
+        }
+        else if (method == web::http::methods::DELETE && path == U("/products"))
+        {
+            response = ProductController::deleteProduct(request, db_);
+        } */
         // 🔹 Añadir encabezados CORS
         Server::add_cors_headers(response);
 

@@ -13,39 +13,46 @@ std::vector<Product> ProductModel::getAllProducts()
     if (!conn)
     {
         std::cerr << "Error: No active database connection" << std::endl;
-        return products; // Retorna el vector vacío
+        return products;
     }
 
     if (mysql_query(conn, query.c_str()))
     {
         std::cerr << "Error al ejecutar la consulta: " << mysql_error(conn) << std::endl;
-        return products; // Retorna el vector vacío
+        return products;
     }
 
     MYSQL_RES *result = mysql_store_result(conn);
     if (!result)
     {
         std::cerr << "Error al obtener resultados: " << mysql_error(conn) << std::endl;
-        return products; // Retorna vector vacío si falla
+        return products;
     }
 
     MYSQL_ROW row;
     while ((row = mysql_fetch_row(result)))
     {
-        int id = std::stoi(row[0]);
-        std::string sku = row[1] ? row[1] : "";
-        std::string name = row[2] ? row[2] : "";
-        std::string description = row[3] ? row[3] : "";
-        double price = row[4] ? std::stod(row[4]) : 0.0;
-        std::string imageUrl = row[5] ? row[5] : "";
-        int categoryId = row[6] ? std::stoi(row[6]) : 0;
+        try
+        {
+            int id = std::stoi(row[0]);
+            std::string sku = row[1] ? row[1] : "";
+            std::string name = row[2] ? row[2] : "";
+            std::string description = row[3] ? row[3] : "";
+            double price = row[4] ? std::stod(row[4]) : 0.0;
+            std::string imageUrl = row[5] ? row[5] : "";
+            int categoryId = row[6] ? std::stoi(row[6]) : 0;
 
-        Product product(id, sku, name, description, price, imageUrl, categoryId);
-        products.push_back(product);
+            Product product(id, sku, name, description, price, imageUrl, categoryId);
+            products.push_back(product);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error al convertir datos: " << e.what() << std::endl;
+            continue; // Ignora el registro problemático
+        }
     }
 
     mysql_free_result(result);
-
     return products;
 }
 
