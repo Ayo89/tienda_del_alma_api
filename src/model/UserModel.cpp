@@ -3,15 +3,15 @@
 #include <cstring>
 #include <iostream>
 
-bool UserModel::createUser(const std::string &first_name,
-                           const std::string &password,
-                           const std::string &email)
+std::optional<int> UserModel::createUser(const std::string &first_name,
+                                         const std::string &password,
+                                         const std::string &email)
 {
     // Validaciones básicas
     if (first_name.empty() || password.empty() || email.empty())
     {
         std::cerr << "Error: name, password, or email cannot be empty" << std::endl;
-        return false;
+        return std::nullopt;
     }
 
     // Obtener el puntero a la conexión MySQL
@@ -19,25 +19,25 @@ bool UserModel::createUser(const std::string &first_name,
     if (!conn)
     {
         std::cerr << "Error: No active database connection" << std::endl;
-        return false;
+        return std::nullopt;
     }
-    std::cout << "first name: " << first_name << std::endl;
+
     // Preparar la consulta
     const char *query = "INSERT INTO users (first_name, password, email) VALUES (?, ?, ?)";
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
     if (!stmt)
     {
         std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
-        return false;
+        return std::nullopt;
     }
-
+    // Preparar el statement
     if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
     {
-        std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;
+        std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt)
+                  << " (MySQL error: " << mysql_error(conn) << ")" << std::endl;
         mysql_stmt_close(stmt);
-        return false;
+        return std::nullopt;
     }
-
     // Vincular parámetros
     MYSQL_BIND bind[3];
     memset(bind, 0, sizeof(bind));
@@ -58,7 +58,7 @@ bool UserModel::createUser(const std::string &first_name,
     {
         std::cerr << "Parameter binding failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
-        return false;
+        return std::nullopt;
     }
 
     // Ejecutar la consulta preparada
@@ -66,12 +66,15 @@ bool UserModel::createUser(const std::string &first_name,
     {
         std::cerr << "Execution failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
-        return false;
+        return std::nullopt;
     }
 
     std::cout << "User created successfully: " << first_name << std::endl;
+
+    int user_id = mysql_insert_id(conn);
+
     mysql_stmt_close(stmt);
-    return true;
+    return user_id;
 }
 
 std::optional<User> UserModel::findUserById(int user_id)

@@ -38,6 +38,7 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "DROP TABLE IF EXISTS inventory;",
             "DROP TABLE IF EXISTS products;",
             "DROP TABLE IF EXISTS categories;",
+            "DROP TABLE IF EXISTS brands;",
             "DROP TABLE IF EXISTS shipping_addresses;",
             "DROP TABLE IF EXISTS billing_addresses;",
             "DROP TABLE IF EXISTS password_resets;",
@@ -83,9 +84,11 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "phone VARCHAR(20) NOT NULL, "
             "street VARCHAR(255) NOT NULL, "
             "city VARCHAR(100) NOT NULL, "
-            "province VARCHAR(100), "
+            "province VARCHAR(100) NOT NULL, "
             "postal_code VARCHAR(20) NOT NULL, "
             "country VARCHAR(100) NOT NULL, "
+            "is_default BOOLEAN DEFAULT FALSE, "
+            "additional_info TEXT, "
             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
             "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
             ") ENGINE=InnoDB;";
@@ -121,6 +124,15 @@ bool DatabaseInitializer::initialize(bool forceInit)
     if (!executeQuery(query))
         return false;
 
+    query = "CREATE TABLE IF NOT EXISTS brands ("
+            "id INT AUTO_INCREMENT PRIMARY KEY, "
+            "name VARCHAR(100) NOT NULL UNIQUE, "
+            "description TEXT, "
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            ") ENGINE=InnoDB;";
+    if (!executeQuery(query))
+        return false;
+
     // Tabla de productos con SKU (explicado más abajo)
     query = "CREATE TABLE IF NOT EXISTS products ("
             "id INT AUTO_INCREMENT PRIMARY KEY, "
@@ -130,8 +142,10 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "price DECIMAL(10,2) NOT NULL, "
             "image_url VARCHAR(255), "
             "category_id INT, "
+            "brand_id INT, "
             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
-            "FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL"
+            "FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL, "
+            "FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE SET NULL"
             ") ENGINE=InnoDB;";
     if (!executeQuery(query))
         return false;

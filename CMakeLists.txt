@@ -38,8 +38,10 @@ add_executable(tienda_del_alma
     src/controllers/AuthController.cpp
     src/controllers/UserController.cpp
     src/controllers/ProductController.cpp
+    src/controllers/AddressController.cpp
     src/model/UserModel.cpp
     src/model/ProductModel.cpp
+    src/model/AddressModel.cpp
 )
 
 # Vincular bibliotecas

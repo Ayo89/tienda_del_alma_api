@@ -49,9 +49,9 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
 
                         // Llamar al controlador de usuarios
                         UserController userController(db);
-                        bool success = userController.createUser(first_name, hashed, email);
-
-                        if (success) {
+                        std::optional<int> user_id = userController.createUser(first_name, hashed, email);
+                        std::cout<<user_id.value()<<std::endl;    
+                        if (user_id.has_value()) {
                             std::string secret = env.get("JWT_SECRET", "");
                             if (secret.empty())
                             {
@@ -63,7 +63,7 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
                                 return;
                             }
 
-                            auto token = JwtService::generateToken(first_name, email);
+                            auto token = JwtService::generateToken(std::to_string(user_id.value()), email);
                             response.headers().add(U("X-Token"), utility::conversions::to_string_t(token));
                             response.set_status_code(status_codes::Created); // 201 Created
                             response.set_body(json::value::object({{U("message"), json::value::string(U("Usuario creado exitosamente"))},
@@ -152,7 +152,7 @@ http_response AuthController::login(const http_request &request, DatabaseConnect
                         return;
                     }
 
-                    auto token = JwtService::generateToken(user.first_name, user.email);
+                    auto token = JwtService::generateToken(std::to_string(user.id), user.email);
                     response.headers().add(U("X-Token"), utility::conversions::to_string_t(token));
                     response.set_status_code(status_codes::OK);
                     response.set_body(json::value::object({

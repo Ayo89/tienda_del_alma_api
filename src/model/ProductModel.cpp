@@ -58,6 +58,8 @@ std::vector<Product> ProductModel::getAllProducts()
 
 bool ProductModel::insertSampleProducts()
 {
+
+    // INSERT CATEGORIES
     std::vector<std::string> categories = {
         "Incienso",
         "Velas",
@@ -85,39 +87,53 @@ bool ProductModel::insertSampleProducts()
         }
     }
 
+    // Insert BRANDS
+    std::vector<std::string> brandQueries = {
+        "INSERT INTO brands (name) VALUES "
+        "('LuzMística'),"
+        "('Esencias del Alma'),"
+        "('RitualZen');"};
+
+    for (const std::string &query : brandQueries)
+    {
+        if (!dbInitializer.executeQuery(query))
+        {
+            std::cerr << "❌ Error al insertar marcas." << std::endl;
+            return false;
+        }
+    }
+    // INSERT PRODUCTS
     std::vector<std::string> queries = {
-        "INSERT INTO products (sku, name, description, price, image_url, category_id) VALUES "
-        "('INC001', 'Incienso de Sándalo', 'Aroma calmante, ideal para meditación.', 4.50, 'https://example.com/images/incienso-sandalo.jpg', 1),"
-        "('INC002', 'Incienso de Lavanda', 'Relajante y purificante.', 4.00, 'https://example.com/images/incienso-lavanda.jpg', 1),"
-        "('INC003', 'Incienso de Mirra', 'Esotérico, ideal para rituales.', 4.75, 'https://example.com/images/incienso-mirra.jpg', 1),"
-        "('INC004', 'Incienso de Copal', 'Purificación energética profunda.', 5.00, 'https://example.com/images/incienso-copal.jpg', 1),"
-        "('INC005', 'Incienso de Rosa', 'Aroma dulce, usado en amor y armonía.', 4.25, 'https://example.com/images/incienso-rosa.jpg', 1),"
+        "INSERT INTO products (sku, name, description, price, image_url, category_id, brand_id) VALUES "
+        "('INC001', 'Incienso de Sándalo', 'Aroma calmante, ideal para meditación.', 4.50, 'https://example.com/images/incienso-sandalo.jpg', 1, 1),"
+        "('INC002', 'Incienso de Lavanda', 'Relajante y purificante.', 4.00, 'https://example.com/images/incienso-lavanda.jpg', 1, 1),"
+        "('INC003', 'Incienso de Mirra', 'Esotérico, ideal para rituales.', 4.75, 'https://example.com/images/incienso-mirra.jpg', 1, 2),"
+        "('INC004', 'Incienso de Copal', 'Purificación energética profunda.', 5.00, 'https://example.com/images/incienso-copal.jpg', 1, 2),"
+        "('INC005', 'Incienso de Rosa', 'Aroma dulce, usado en amor y armonía.', 4.25, 'https://example.com/images/incienso-rosa.jpg', 1, 3),"
 
-        "('VEL001', 'Vela Blanca Ritual', 'Usada en rituales de limpieza y protección.', 3.50, 'https://example.com/images/vela-blanca.jpg', 2),"
-        "('VEL002', 'Vela Roja Ritual', 'Atrae amor y pasión.', 3.75, 'https://example.com/images/vela-roja.jpg', 2),"
-        "('VEL003', 'Vela Verde Prosperidad', 'Rituales de dinero y crecimiento.', 3.60, 'https://example.com/images/vela-verde.jpg', 2),"
-        "('VEL004', 'Vela Azul Paz', 'Ayuda a calmar el espíritu y dormir mejor.', 3.55, 'https://example.com/images/vela-azul.jpg', 2),"
-        "('VEL005', 'Vela Negra Protección', 'Rituales de protección intensa.', 3.90, 'https://example.com/images/vela-negra.jpg', 2),"
+        "('VEL001', 'Vela Blanca Ritual', 'Usada en rituales de limpieza y protección.', 3.50, 'https://example.com/images/vela-blanca.jpg', 2, 1),"
+        "('VEL002', 'Vela Roja Ritual', 'Atrae amor y pasión.', 3.75, 'https://example.com/images/vela-roja.jpg', 2, 1),"
+        "('VEL003', 'Vela Verde Prosperidad', 'Rituales de dinero y crecimiento.', 3.60, 'https://example.com/images/vela-verde.jpg', 2, 2),"
+        "('VEL004', 'Vela Azul Paz', 'Ayuda a calmar el espíritu y dormir mejor.', 3.55, 'https://example.com/images/vela-azul.jpg', 2, 2),"
+        "('VEL005', 'Vela Negra Protección', 'Rituales de protección intensa.', 3.90, 'https://example.com/images/vela-negra.jpg', 2, 3),"
 
-        "('CRS001', 'Cuarzo Rosa', 'Cristal del amor y la armonía emocional.', 6.50, 'https://example.com/images/cuarzo-rosa.jpg', 3),"
-        "('CRS002', 'Amatista', 'Cristal para meditación y sueños lúcidos.', 6.75, 'https://example.com/images/amatista.jpg', 3),"
-        "('CRS003', 'Obsidiana Negra', 'Poderosa para protección energética.', 7.00, 'https://example.com/images/obsidiana.jpg', 3),"
-        "('CRS004', 'Citrino', 'Atrae éxito y energía positiva.', 6.90, 'https://example.com/images/citrino.jpg', 3),"
-        "('CRS005', 'Turmalina Negra', 'Escudo contra energías negativas.', 7.20, 'https://example.com/images/turmalina.jpg', 3),"
+        "('CRS001', 'Cuarzo Rosa', 'Cristal del amor y la armonía emocional.', 6.50, 'https://example.com/images/cuarzo-rosa.jpg', 3, 1),"
+        "('CRS002', 'Amatista', 'Cristal para meditación y sueños lúcidos.', 6.75, 'https://example.com/images/amatista.jpg', 3, 1),"
+        "('CRS003', 'Obsidiana Negra', 'Poderosa para protección energética.', 7.00, 'https://example.com/images/obsidiana.jpg', 3, 2),"
+        "('CRS004', 'Citrino', 'Atrae éxito y energía positiva.', 6.90, 'https://example.com/images/citrino.jpg', 3, 2),"
+        "('CRS005', 'Turmalina Negra', 'Escudo contra energías negativas.', 7.20, 'https://example.com/images/turmalina.jpg', 3, 3),"
 
-        "('KIT001', 'Kit de Limpieza Energética', 'Incluye incienso, vela y cuarzo.', 12.00, 'https://example.com/images/kit-limpieza.jpg', 4),"
-        "('KIT002', 'Kit de Abundancia', 'Ritual para atraer prosperidad.', 13.50, 'https://example.com/images/kit-abundancia.jpg', 4),"
-        "('KIT003', 'Kit de Amor Propio', 'Fomenta autoestima y autocuidado.', 12.75, 'https://example.com/images/kit-amor.jpg', 4),"
-        "('KIT004', 'Kit de Protección Espiritual', 'Ideal para limpieza profunda.', 14.00, 'https://example.com/images/kit-proteccion.jpg', 4),"
-        "('KIT005', 'Kit Lunar Completo', 'Para rituales según las fases de la luna.', 15.50, 'https://example.com/images/kit-lunar.jpg', 4);"};
-
-
+        "('KIT001', 'Kit de Limpieza Energética', 'Incluye incienso, vela y cuarzo.', 12.00, 'https://example.com/images/kit-limpieza.jpg', 4, 1),"
+        "('KIT002', 'Kit de Abundancia', 'Ritual para atraer prosperidad.', 13.50, 'https://example.com/images/kit-abundancia.jpg', 4, 2),"
+        "('KIT003', 'Kit de Amor Propio', 'Fomenta autoestima y autocuidado.', 12.75, 'https://example.com/images/kit-amor.jpg', 4, 2),"
+        "('KIT004', 'Kit de Protección Espiritual', 'Ideal para limpieza profunda.', 14.00, 'https://example.com/images/kit-proteccion.jpg', 4, 3),"
+        "('KIT005', 'Kit Lunar Completo', 'Para rituales según las fases de la luna.', 15.50, 'https://example.com/images/kit-lunar.jpg', 4, 3);"};
 
     for (const std::string &query : queries)
     {
         if (!dbInitializer.executeQuery(query))
         {
-            std::cerr << "❌ Error al insertar productos." << std::endl;
+            std::cerr << "❌ Error al insertar productos. MySql dice: " << mysql_error(conn) << "" << std::endl;
             return false;
         }
     }

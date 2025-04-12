@@ -55,6 +55,29 @@ void Router::setup_routes()
         {
             response = ProductController::deleteProduct(request, db_);
         } */
+
+        //ADDRESS
+
+/*         if(method == web::http::methods::GET && path == U("/address"))
+        {
+            AddressController model(db_);
+            response = model.getAllAddresses();
+        } */
+        if (method == web::http::methods::POST && path == U("/address"))
+        {
+            AddressController AddressController(db_);
+            response = AddressController.createAddress(request);
+        }
+/*         else if (method == web::http::methods::PUT && path == U("/address"))
+        {
+            response = AddressController::updateAddress(request, db_);
+        }
+        else if (method == web::http::methods::DELETE && path == U("/address"))
+        {
+            response = AddressController::deleteAddress(request, db_);
+        }
+ */
+
         // 🔹 Añadir encabezados CORS
         Server::add_cors_headers(response);
 

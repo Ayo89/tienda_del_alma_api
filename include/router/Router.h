@@ -6,6 +6,7 @@
 #include "db/DatabaseConnection.h"
 #include "controllers/ProductController.h"
 #include "controllers/UserController.h"
+#include "controllers/AddressController.h"
 
 class Router
 {

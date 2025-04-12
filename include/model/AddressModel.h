@@ -2,17 +2,31 @@
 #define ADDRESSMODEL_H
 
 #include <string>
+#include <vector>
+#include <optional>
+#include "entities/Address.h"
+#include "db/DatabaseConnection.h"
+#include "db/DatabaseInitializer.h"
 
 class AddressModel
 {
-public:
-    int id;
-    std::string street;
-    std::string city;
-    std::string type; // shipping o billing
+private:
+    DatabaseConnection &db;
 
-    AddressModel(int addressId, std::string streetAddress, std::string cityAddress, std::string addressType)
-        : id(addressId), street(streetAddress), city(cityAddress), type(addressType) {}
+public:
+    AddressModel(DatabaseConnection &database) : db(database) {}
+    std::optional<int> createAddress(
+        const int &user_id,
+        const std::string &first_name,
+        const std::string &last_name,
+        const std::string &phone,
+        const std::string &street,
+        const std::string &city,
+        const std::string &province,
+        const std::string &postal_code,
+        const std::string &country,
+        const bool &is_default = false,
+        const std::string &additional_info = "");
 };
 
 #endif
