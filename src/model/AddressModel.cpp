@@ -150,6 +150,7 @@ std::optional<int> AddressModel::createAddress(
 
 std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const int &user_id)
 {
+    std::cout << "Entrando a getAllAddressByUserId Model" << std::endl;
     MYSQL *conn = db.getConnection();
     if (!conn || mysql_ping(conn) != 0)
     {
@@ -178,6 +179,7 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
         std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;
         return std::nullopt;
     }
+    std::cout << "Query prepared successfully" << std::endl;
 
     MYSQL_BIND param[2];
     memset(param, 0, sizeof(param));
@@ -195,78 +197,106 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
     MYSQL_BIND result[12];
     memset(result, 0, sizeof(result));
     int id;
-    char first_name[100], last_name[100], phone[20], street[100], city[100], province[100], postal_code[20], country[100], additional_info[255], type[20];
+    char first_name[255], last_name[255], phone[50], street[255], city[100], province[100], postal_code[20], country[100], additional_info[1000], type[20];
     bool is_default;
-    unsigned long len[11];
+    unsigned long len[12];
+    bool is_null[12];
 
     result[0].buffer_type = MYSQL_TYPE_LONG;
     result[0].buffer = &id;
+    result[0].is_null = &is_null[0];
     result[1].buffer_type = MYSQL_TYPE_STRING;
     result[1].buffer = first_name;
     result[1].buffer_length = sizeof(first_name);
     result[1].length = &len[1];
+    result[1].is_null = &is_null[1];
     result[2].buffer_type = MYSQL_TYPE_STRING;
     result[2].buffer = last_name;
     result[2].buffer_length = sizeof(last_name);
     result[2].length = &len[2];
+    result[2].is_null = &is_null[2];
     result[3].buffer_type = MYSQL_TYPE_STRING;
     result[3].buffer = phone;
     result[3].buffer_length = sizeof(phone);
     result[3].length = &len[3];
+    result[3].is_null = &is_null[3];
     result[4].buffer_type = MYSQL_TYPE_STRING;
     result[4].buffer = street;
     result[4].buffer_length = sizeof(street);
     result[4].length = &len[4];
+    result[4].is_null = &is_null[4];
     result[5].buffer_type = MYSQL_TYPE_STRING;
     result[5].buffer = city;
     result[5].buffer_length = sizeof(city);
     result[5].length = &len[5];
+    result[5].is_null = &is_null[5];
     result[6].buffer_type = MYSQL_TYPE_STRING;
     result[6].buffer = province;
     result[6].buffer_length = sizeof(province);
     result[6].length = &len[6];
+    result[6].is_null = &is_null[6];
     result[7].buffer_type = MYSQL_TYPE_STRING;
     result[7].buffer = postal_code;
     result[7].buffer_length = sizeof(postal_code);
     result[7].length = &len[7];
+    result[7].is_null = &is_null[7];
     result[8].buffer_type = MYSQL_TYPE_STRING;
     result[8].buffer = country;
     result[8].buffer_length = sizeof(country);
     result[8].length = &len[8];
+    result[8].is_null = &is_null[8];
     result[9].buffer_type = MYSQL_TYPE_TINY;
     result[9].buffer = &is_default;
+    result[9].is_null = &is_null[9];
     result[10].buffer_type = MYSQL_TYPE_STRING;
     result[10].buffer = additional_info;
     result[10].buffer_length = sizeof(additional_info);
     result[10].length = &len[10];
+    result[10].is_null = &is_null[10];
     result[11].buffer_type = MYSQL_TYPE_STRING;
     result[11].buffer = type;
     result[11].buffer_length = sizeof(type);
     result[11].length = &len[11];
+    result[11].is_null = &is_null[11];
 
     if (mysql_stmt_bind_result(stmt, result) != 0)
     {
         std::cerr << "Result binding failed: " << mysql_stmt_error(stmt) << std::endl;
         return std::nullopt;
     }
+    std::cout << "Result binding successful" << std::endl;
 
-    while (mysql_stmt_fetch(stmt) == 0)
+    int fetch_result = mysql_stmt_fetch(stmt);
+    if (fetch_result == 0)
     {
-        Address address;
-        address.id = id;
-        address.first_name = std::string(first_name, len[1]);
-        address.last_name = std::string(last_name, len[2]);
-        address.phone = std::string(phone, len[3]);
-        address.street = std::string(street, len[4]);
-        address.city = std::string(city, len[5]);
-        address.province = std::string(province, len[6]);
-        address.postal_code = std::string(postal_code, len[7]);
-        address.country = std::string(country, len[8]);
-        address.is_default = is_default;
-        address.additional_info = std::string(additional_info, len[10]);
-        address.type = std::string(type, len[11]);
-        addresses.push_back(address);
+        do
+        {
+            Address address;
+            address.id = id;
+            address.first_name = is_null[1] ? "" : std::string(first_name, len[1]);
+            address.last_name = is_null[2] ? "" : std::string(last_name, len[2]);
+            address.phone = is_null[3] ? "" : std::string(phone, len[3]);
+            address.street = is_null[4] ? "" : std::string(street, len[4]);
+            address.city = is_null[5] ? "" : std::string(city, len[5]);
+            address.province = is_null[6] ? "" : std::string(province, len[6]);
+            address.postal_code = is_null[7] ? "" : std::string(postal_code, len[7]);
+            address.country = is_null[8] ? "" : std::string(country, len[8]);
+            address.is_default = is_default;
+            address.additional_info = is_null[10] ? "" : std::string(additional_info, len[10]);
+            address.type = is_null[11] ? "" : std::string(type, len[11]);
+            addresses.push_back(address);
+        } while (mysql_stmt_fetch(stmt) == 0);
+    }
+    else if (fetch_result == MYSQL_NO_DATA)
+    {
+        std::cout << "⚠️ No se encontraron direcciones para el user_id: " << user_id << std::endl;
+    }
+    else
+    {
+        std::cerr << "❌ Error en mysql_stmt_fetch: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
     }
 
+    std::cout << "Direcciones encontradas: " << addresses.size() << std::endl;
     return addresses;
 }

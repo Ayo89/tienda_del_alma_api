@@ -60,8 +60,8 @@ void Router::setup_routes()
 
       if(method == web::http::methods::GET && path == U("/address"))
         {
-            AddressController model(db_);
-            response = model.getAddressesByUserId(request);
+            AddressController AddressController(db_);
+            response = AddressController.getAddressesByUserId(request);
         } 
         if (method == web::http::methods::POST && path == U("/address"))
         {
