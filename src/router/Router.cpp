@@ -56,13 +56,13 @@ void Router::setup_routes()
             response = ProductController::deleteProduct(request, db_);
         } */
 
-        //ADDRESS
+        // SHIPPING ADDRESS
 
-/*         if(method == web::http::methods::GET && path == U("/address"))
+      if(method == web::http::methods::GET && path == U("/address"))
         {
             AddressController model(db_);
-            response = model.getAllAddresses();
-        } */
+            response = model.getAddressesByUserId(request);
+        } 
         if (method == web::http::methods::POST && path == U("/address"))
         {
             AddressController AddressController(db_);

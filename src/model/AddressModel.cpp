@@ -2,6 +2,7 @@
 #include <mysql/mysql.h>
 #include <cstring>
 #include <iostream>
+#include <memory>
 
 std::optional<int> AddressModel::createAddress(
     const int &user_id,
@@ -13,6 +14,7 @@ std::optional<int> AddressModel::createAddress(
     const std::string &province,
     const std::string &postal_code,
     const std::string &country,
+    const std::string &type,
     const bool &is_default,
     const std::string &additional_info)
 {
@@ -31,9 +33,17 @@ std::optional<int> AddressModel::createAddress(
         std::cerr << "Error: No active database connection" << std::endl;
         return std::nullopt;
     }
-
+    const char *query = nullptr;
     // Preparar la consulta
-    const char *query = "INSERT INTO shipping_addresses (user_id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    if (type == "billing")
+    {
+        query = "INSERT INTO billing_addresses (user_id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+    else
+    {
+        query = "INSERT INTO shipping_addresses (user_id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
     if (!stmt)
     {
@@ -48,6 +58,9 @@ std::optional<int> AddressModel::createAddress(
         mysql_stmt_close(stmt);
         return std::nullopt;
     }
+
+    // Variable local para manejar el valor NULL (si es necesario)
+    bool is_null_additional = additional_info.empty();
 
     // Vincular parámetros
     MYSQL_BIND bind[11];
@@ -107,7 +120,7 @@ std::optional<int> AddressModel::createAddress(
     bind[10].buffer_type = MYSQL_TYPE_STRING;
     bind[10].buffer = (void *)additional_info.c_str();
     bind[10].buffer_length = additional_info.length();
-    bind[10].is_null = additional_info.empty() ? new bool(true) : nullptr;
+    bind[10].is_null = is_null_additional ? &is_null_additional : nullptr;
 
     // Vincular los parámetros
     if (mysql_stmt_bind_param(stmt, bind) != 0)
@@ -115,7 +128,6 @@ std::optional<int> AddressModel::createAddress(
         std::cerr << "Parameter binding failed: " << mysql_stmt_error(stmt)
                   << " (MySQL error: " << mysql_error(conn) << ")" << std::endl;
         mysql_stmt_close(stmt);
-        delete bind[10].is_null; // Limpieza
         return std::nullopt;
     }
 
@@ -125,7 +137,6 @@ std::optional<int> AddressModel::createAddress(
         std::cerr << "Execution failed: " << mysql_stmt_error(stmt)
                   << " (MySQL error: " << mysql_error(conn) << ")" << std::endl;
         mysql_stmt_close(stmt);
-        delete bind[10].is_null; // Limpieza
         return std::nullopt;
     }
 
@@ -134,6 +145,128 @@ std::optional<int> AddressModel::createAddress(
 
     std::cout << "Address created successfully for user_id: " << user_id << std::endl;
     mysql_stmt_close(stmt);
-    delete bind[10].is_null; // Limpieza
     return address_id;
+}
+
+std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const int &user_id)
+{
+    MYSQL *conn = db.getConnection();
+    if (!conn || mysql_ping(conn) != 0)
+    {
+        std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
+        return std::nullopt;
+    }
+
+    std::vector<Address> addresses;
+    const char *query =
+        "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info, 'billing' AS type "
+        "FROM billing_addresses WHERE user_id = ? "
+        "UNION "
+        "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info, 'shipping' AS type "
+        "FROM shipping_addresses WHERE user_id = ?";
+
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    if (!stmt)
+    {
+        std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
+        return std::nullopt;
+    }
+    auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+
+    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    {
+        std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    MYSQL_BIND param[2];
+    memset(param, 0, sizeof(param));
+    param[0].buffer_type = MYSQL_TYPE_LONG;
+    param[0].buffer = (void *)&user_id;
+    param[1].buffer_type = MYSQL_TYPE_LONG;
+    param[1].buffer = (void *)&user_id;
+
+    if (mysql_stmt_bind_param(stmt, param) != 0 || mysql_stmt_execute(stmt) != 0)
+    {
+        std::cerr << "Execution failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    MYSQL_BIND result[12];
+    memset(result, 0, sizeof(result));
+    int id;
+    char first_name[100], last_name[100], phone[20], street[100], city[100], province[100], postal_code[20], country[100], additional_info[255], type[20];
+    bool is_default;
+    unsigned long len[11];
+
+    result[0].buffer_type = MYSQL_TYPE_LONG;
+    result[0].buffer = &id;
+    result[1].buffer_type = MYSQL_TYPE_STRING;
+    result[1].buffer = first_name;
+    result[1].buffer_length = sizeof(first_name);
+    result[1].length = &len[1];
+    result[2].buffer_type = MYSQL_TYPE_STRING;
+    result[2].buffer = last_name;
+    result[2].buffer_length = sizeof(last_name);
+    result[2].length = &len[2];
+    result[3].buffer_type = MYSQL_TYPE_STRING;
+    result[3].buffer = phone;
+    result[3].buffer_length = sizeof(phone);
+    result[3].length = &len[3];
+    result[4].buffer_type = MYSQL_TYPE_STRING;
+    result[4].buffer = street;
+    result[4].buffer_length = sizeof(street);
+    result[4].length = &len[4];
+    result[5].buffer_type = MYSQL_TYPE_STRING;
+    result[5].buffer = city;
+    result[5].buffer_length = sizeof(city);
+    result[5].length = &len[5];
+    result[6].buffer_type = MYSQL_TYPE_STRING;
+    result[6].buffer = province;
+    result[6].buffer_length = sizeof(province);
+    result[6].length = &len[6];
+    result[7].buffer_type = MYSQL_TYPE_STRING;
+    result[7].buffer = postal_code;
+    result[7].buffer_length = sizeof(postal_code);
+    result[7].length = &len[7];
+    result[8].buffer_type = MYSQL_TYPE_STRING;
+    result[8].buffer = country;
+    result[8].buffer_length = sizeof(country);
+    result[8].length = &len[8];
+    result[9].buffer_type = MYSQL_TYPE_TINY;
+    result[9].buffer = &is_default;
+    result[10].buffer_type = MYSQL_TYPE_STRING;
+    result[10].buffer = additional_info;
+    result[10].buffer_length = sizeof(additional_info);
+    result[10].length = &len[10];
+    result[11].buffer_type = MYSQL_TYPE_STRING;
+    result[11].buffer = type;
+    result[11].buffer_length = sizeof(type);
+    result[11].length = &len[11];
+
+    if (mysql_stmt_bind_result(stmt, result) != 0)
+    {
+        std::cerr << "Result binding failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    while (mysql_stmt_fetch(stmt) == 0)
+    {
+        Address address;
+        address.id = id;
+        address.first_name = std::string(first_name, len[1]);
+        address.last_name = std::string(last_name, len[2]);
+        address.phone = std::string(phone, len[3]);
+        address.street = std::string(street, len[4]);
+        address.city = std::string(city, len[5]);
+        address.province = std::string(province, len[6]);
+        address.postal_code = std::string(postal_code, len[7]);
+        address.country = std::string(country, len[8]);
+        address.is_default = is_default;
+        address.additional_info = std::string(additional_info, len[10]);
+        address.type = std::string(type, len[11]);
+        addresses.push_back(address);
+    }
+
+    return addresses;
 }

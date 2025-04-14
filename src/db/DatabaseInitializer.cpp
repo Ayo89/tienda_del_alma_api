@@ -39,10 +39,11 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "DROP TABLE IF EXISTS products;",
             "DROP TABLE IF EXISTS categories;",
             "DROP TABLE IF EXISTS brands;",
-            "DROP TABLE IF EXISTS shipping_addresses;",
-            "DROP TABLE IF EXISTS billing_addresses;",
+/*             "DROP TABLE IF EXISTS shipping_addresses;",
+            "DROP TABLE IF EXISTS billing_addresses;", */
             "DROP TABLE IF EXISTS password_resets;",
-            "DROP TABLE IF EXISTS users;"};
+/*             "DROP TABLE IF EXISTS users;"
+ */        };
         for (const char *q : dropQueries)
         {
             if (!executeQuery(std::string(q)))
@@ -108,6 +109,8 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "province VARCHAR(100), "
             "postal_code VARCHAR(20) NOT NULL, "
             "country VARCHAR(100) NOT NULL, "
+            "is_default BOOLEAN DEFAULT FALSE, "
+            "additional_info TEXT, "
             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
             "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
             ") ENGINE=InnoDB;";

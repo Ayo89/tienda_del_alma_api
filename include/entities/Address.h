@@ -6,7 +6,6 @@
 struct Address
 {
     int id;
-    int user_id;
     std::string first_name;
     std::string last_name;
     std::string phone;
@@ -15,6 +14,9 @@ struct Address
     std::string province;
     std::string postal_code;
     std::string country;
+    bool is_default;
+    std::string additional_info;
+    std::string type; // "billing" o "shipping"
 };
 
 #endif

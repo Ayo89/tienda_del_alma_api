@@ -3,56 +3,90 @@
 #include <mysql/mysql.h>
 #include "db/DatabaseInitializer.h"
 #include <iostream> // Para manejo de errores o logs, si es necesario
+#include <memory>   // Para std::unique_ptr
+#include <cstring>  // Para strlen
 
-std::vector<Product> ProductModel::getAllProducts()
+std::optional<std::vector<Product>> ProductModel::getAllProducts()
 {
-    std::vector<Product> products;
-    std::string query = "SELECT id, sku, name, description, price, image_url, category_id FROM products;";
-
     MYSQL *conn = db.getConnection();
-    if (!conn)
+    if (!conn || mysql_ping(conn) != 0)
     {
-        std::cerr << "Error: No active database connection" << std::endl;
-        return products;
+        std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
+        return std::nullopt;
     }
 
-    if (mysql_query(conn, query.c_str()))
+    std::vector<Product> products;
+    const char *query = "SELECT id, sku, name, description, price, image_url, category_id FROM products";
+
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    if (!stmt)
     {
-        std::cerr << "Error al ejecutar la consulta: " << mysql_error(conn) << std::endl;
-        return products;
+        std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
+        return std::nullopt;
+    }
+    auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+
+    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    {
+        std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
     }
 
-    MYSQL_RES *result = mysql_store_result(conn);
-    if (!result)
+    if (mysql_stmt_execute(stmt) != 0)
     {
-        std::cerr << "Error al obtener resultados: " << mysql_error(conn) << std::endl;
-        return products;
+        std::cerr << "Execution failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
     }
 
-    MYSQL_ROW row;
-    while ((row = mysql_fetch_row(result)))
-    {
-        try
-        {
-            int id = std::stoi(row[0]);
-            std::string sku = row[1] ? row[1] : "";
-            std::string name = row[2] ? row[2] : "";
-            std::string description = row[3] ? row[3] : "";
-            double price = row[4] ? std::stod(row[4]) : 0.0;
-            std::string imageUrl = row[5] ? row[5] : "";
-            int categoryId = row[6] ? std::stoi(row[6]) : 0;
+    MYSQL_BIND result[7];
+    memset(result, 0, sizeof(result));
+    int id, category_id;
+    char sku[50], name[100], description[255], image_url[255];
+    double price;
+    unsigned long len[4];
 
-            Product product(id, sku, name, description, price, imageUrl, categoryId);
-            products.push_back(product);
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Error al convertir datos: " << e.what() << std::endl;
-            continue; // Ignora el registro problemático
-        }
+    result[0].buffer_type = MYSQL_TYPE_LONG;
+    result[0].buffer = &id;
+    result[1].buffer_type = MYSQL_TYPE_STRING;
+    result[1].buffer = sku;
+    result[1].buffer_length = sizeof(sku);
+    result[1].length = &len[1];
+    result[2].buffer_type = MYSQL_TYPE_STRING;
+    result[2].buffer = name;
+    result[2].buffer_length = sizeof(name);
+    result[2].length = &len[2];
+    result[3].buffer_type = MYSQL_TYPE_STRING;
+    result[3].buffer = description;
+    result[3].buffer_length = sizeof(description);
+    result[3].length = &len[3];
+    result[4].buffer_type = MYSQL_TYPE_DOUBLE;
+    result[4].buffer = &price;
+    result[5].buffer_type = MYSQL_TYPE_STRING;
+    result[5].buffer = image_url;
+    result[5].buffer_length = sizeof(image_url);
+    result[5].length = &len[5];
+    result[6].buffer_type = MYSQL_TYPE_LONG;
+    result[6].buffer = &category_id;
+
+    if (mysql_stmt_bind_result(stmt, result) != 0)
+    {
+        std::cerr << "Result binding failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
     }
 
-    mysql_free_result(result);
+    while (mysql_stmt_fetch(stmt) == 0)
+    {
+        Product product;
+        product.id = id;
+        product.sku = std::string(sku, len[1]);
+        product.name = std::string(name, len[2]);
+        product.description = std::string(description, len[3]);
+        product.price = price;
+        product.image_url = std::string(image_url, len[5]);
+        product.category_id = category_id;
+        products.push_back(product);
+    }
+
     return products;
 }
 

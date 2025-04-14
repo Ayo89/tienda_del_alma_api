@@ -25,8 +25,10 @@ public:
         const std::string &province,
         const std::string &postal_code,
         const std::string &country,
+        const std::string &type = "",
         const bool &is_default = false,
         const std::string &additional_info = "");
+    std::optional<std::vector<Address>> getAllAddressByUserId(const int &user_id);
 };
 
 #endif

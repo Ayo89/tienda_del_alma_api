@@ -11,8 +11,8 @@ struct Product
     std::string description;
     
     double price;
-    std::string imageUrl;
-    int categoryId;
+    std::string image_url;
+    int category_id;
 };
 
 #endif

@@ -16,7 +16,7 @@ private:
 public:
     ProductModel(DatabaseConnection &database) : db(database) {}
     bool insertSampleProducts();
-    std::vector<Product> getAllProducts();
+    std::optional<std::vector<Product>> getAllProducts();
 };
 
 #endif // PRODUCTMODEL_H
