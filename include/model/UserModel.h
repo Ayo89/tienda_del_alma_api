@@ -7,6 +7,9 @@
 #include "AddressModel.h"
 #include "entities/User.h"
 #include "db/DatabaseConnection.h"
+#include <array>
+#include <cstring> // Para std::memset
+#include <mysql/mysql.h>
 
 class UserModel
 {

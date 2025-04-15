@@ -66,6 +66,51 @@ std::optional<int> AddressModel::createAddress(
     MYSQL_BIND bind[11];
     memset(bind, 0, sizeof(bind));
 
+    char first_name_buf[256];
+    strncpy(first_name_buf, first_name.c_str(), sizeof(first_name_buf) - 1);
+    first_name_buf[sizeof(first_name_buf) - 1] = '\0';
+    unsigned long first_name_length = strlen(first_name_buf);
+
+    char last_name_buf[256];
+    strncpy(last_name_buf, last_name.c_str(), sizeof(last_name_buf) - 1);
+    last_name_buf[sizeof(last_name_buf) - 1] = '\0';
+    unsigned long last_name_length = strlen(last_name_buf);
+
+    char phone_buf[256];
+    strncpy(phone_buf, phone.c_str(), sizeof(phone_buf) - 1);
+    phone_buf[sizeof(phone_buf) - 1] = '\0';
+    unsigned long phone_length = strlen(phone_buf);
+
+    char street_buf[256];
+    strncpy(street_buf, street.c_str(), sizeof(street_buf) - 1);
+    street_buf[sizeof(street_buf) - 1] = '\0';
+    unsigned long street_length = strlen(street_buf);
+
+    char city_buf[256];
+    strncpy(city_buf, city.c_str(), sizeof(city_buf) - 1);
+    city_buf[sizeof(city_buf) - 1] = '\0';
+    unsigned long city_length = strlen(city_buf);
+
+    char province_buf[256];
+    strncpy(province_buf, province.c_str(), sizeof(province_buf) - 1);
+    province_buf[sizeof(province_buf) - 1] = '\0';
+    unsigned long province_length = strlen(province_buf);
+
+    char postal_code_buf[256];
+    strncpy(postal_code_buf, postal_code.c_str(), sizeof(postal_code_buf) - 1);
+    postal_code_buf[sizeof(postal_code_buf) - 1] = '\0';
+    unsigned long postal_code_length = strlen(postal_code_buf);
+
+    char country_buf[256];
+    strncpy(country_buf, country.c_str(), sizeof(country_buf) - 1);
+    country_buf[sizeof(country_buf) - 1] = '\0';
+    unsigned long country_length = strlen(country_buf);
+
+    char additional_info_buf[1000];
+    strncpy(additional_info_buf, additional_info.c_str(), sizeof(additional_info_buf) - 1);
+    additional_info_buf[sizeof(additional_info_buf) - 1] = '\0';
+    unsigned long additional_info_length = strlen(additional_info_buf);
+
     // user_id
     bind[0].buffer_type = MYSQL_TYPE_LONG;
     bind[0].buffer = (void *)&user_id;
@@ -73,54 +118,73 @@ std::optional<int> AddressModel::createAddress(
 
     // first_name
     bind[1].buffer_type = MYSQL_TYPE_STRING;
-    bind[1].buffer = (void *)first_name.c_str();
-    bind[1].buffer_length = first_name.length();
+    bind[1].buffer = (void *)first_name_buf;
+    bind[1].buffer_length = sizeof(first_name_buf);
+    bind[1].length = &first_name_length;
+    bind[1].is_null = nullptr;
 
     // last_name
     bind[2].buffer_type = MYSQL_TYPE_STRING;
-    bind[2].buffer = (void *)last_name.c_str();
-    bind[2].buffer_length = last_name.length();
+    bind[2].buffer = (void *)last_name_buf;
+    bind[2].buffer_length = sizeof(last_name_buf);
+    bind[2].length = &last_name_length;
+    bind[2].is_null = nullptr;
 
     // phone
     bind[3].buffer_type = MYSQL_TYPE_STRING;
-    bind[3].buffer = (void *)phone.c_str();
-    bind[3].buffer_length = phone.length();
+    bind[3].buffer = (void *)phone_buf;
+    bind[3].buffer_length = sizeof(phone_buf);
+    bind[3].length = &phone_length;
+    bind[3].is_null = nullptr;
 
     // street
     bind[4].buffer_type = MYSQL_TYPE_STRING;
-    bind[4].buffer = (void *)street.c_str();
-    bind[4].buffer_length = street.length();
+    bind[4].buffer = (void *)street_buf;
+    bind[4].buffer_length = sizeof(street_buf);
+    bind[4].length = &street_length;
+    bind[4].is_null = nullptr;
 
     // city
     bind[5].buffer_type = MYSQL_TYPE_STRING;
-    bind[5].buffer = (void *)city.c_str();
-    bind[5].buffer_length = city.length();
+    bind[5].buffer = (void *)city_buf;
+    bind[5].buffer_length = sizeof(city_buf);
+    bind[5].length = &city_length;
+    bind[5].is_null = nullptr;
 
     // province
     bind[6].buffer_type = MYSQL_TYPE_STRING;
-    bind[6].buffer = (void *)province.c_str();
-    bind[6].buffer_length = province.length();
+    bind[6].buffer = (void *)province_buf;
+    bind[6].buffer_length = sizeof(province_buf);
+    bind[6].length = &province_length;
+    bind[6].is_null = nullptr;
 
     // postal_code
     bind[7].buffer_type = MYSQL_TYPE_STRING;
-    bind[7].buffer = (void *)postal_code.c_str();
-    bind[7].buffer_length = postal_code.length();
+    bind[7].buffer = (void *)postal_code_buf;
+    bind[7].buffer_length = sizeof(postal_code_buf);
+    bind[7].length = &postal_code_length;
+    bind[7].is_null = nullptr;
 
     // country
     bind[8].buffer_type = MYSQL_TYPE_STRING;
-    bind[8].buffer = (void *)country.c_str();
-    bind[8].buffer_length = country.length();
+    bind[8].buffer = (void *)country_buf;
+    bind[8].buffer_length = sizeof(country_buf);
+    bind[8].length = &country_length;
+    bind[8].is_null = nullptr;
 
     // is_default
+    unsigned char is_default_char = is_default ? 1 : 0;
     bind[9].buffer_type = MYSQL_TYPE_TINY;
-    bind[9].buffer = (void *)&is_default;
-    bind[9].buffer_length = sizeof(is_default);
+    bind[9].buffer = (void *)&is_default_char;
+    bind[9].buffer_length = sizeof(is_default_char);
+    bind[9].is_null = nullptr;
 
     // additional_info
     bind[10].buffer_type = MYSQL_TYPE_STRING;
-    bind[10].buffer = (void *)additional_info.c_str();
-    bind[10].buffer_length = additional_info.length();
-    bind[10].is_null = is_null_additional ? &is_null_additional : nullptr;
+    bind[10].buffer = (void *)additional_info_buf;
+    bind[10].buffer_length = sizeof(additional_info_buf);
+    bind[10].length = &additional_info_length;
+    bind[10].is_null = &is_null_additional;
 
     // Vincular los parámetros
     if (mysql_stmt_bind_param(stmt, bind) != 0)
@@ -198,61 +262,84 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
     memset(result, 0, sizeof(result));
     int id;
     char first_name[255], last_name[255], phone[50], street[255], city[100], province[100], postal_code[20], country[100], additional_info[1000], type[20];
-    bool is_default;
+    char is_default;
     unsigned long len[12];
     bool is_null[12];
 
+    // id
     result[0].buffer_type = MYSQL_TYPE_LONG;
     result[0].buffer = &id;
     result[0].is_null = &is_null[0];
+
+    // first_name
     result[1].buffer_type = MYSQL_TYPE_STRING;
     result[1].buffer = first_name;
     result[1].buffer_length = sizeof(first_name);
     result[1].length = &len[1];
     result[1].is_null = &is_null[1];
+
+    // last_name
     result[2].buffer_type = MYSQL_TYPE_STRING;
     result[2].buffer = last_name;
     result[2].buffer_length = sizeof(last_name);
     result[2].length = &len[2];
     result[2].is_null = &is_null[2];
+
+    // phone
     result[3].buffer_type = MYSQL_TYPE_STRING;
     result[3].buffer = phone;
     result[3].buffer_length = sizeof(phone);
     result[3].length = &len[3];
     result[3].is_null = &is_null[3];
+
+    // street
     result[4].buffer_type = MYSQL_TYPE_STRING;
     result[4].buffer = street;
     result[4].buffer_length = sizeof(street);
     result[4].length = &len[4];
     result[4].is_null = &is_null[4];
+
+    // city
     result[5].buffer_type = MYSQL_TYPE_STRING;
     result[5].buffer = city;
     result[5].buffer_length = sizeof(city);
     result[5].length = &len[5];
     result[5].is_null = &is_null[5];
+
+    // province
     result[6].buffer_type = MYSQL_TYPE_STRING;
     result[6].buffer = province;
     result[6].buffer_length = sizeof(province);
     result[6].length = &len[6];
     result[6].is_null = &is_null[6];
+
+    // postal_code
     result[7].buffer_type = MYSQL_TYPE_STRING;
     result[7].buffer = postal_code;
     result[7].buffer_length = sizeof(postal_code);
     result[7].length = &len[7];
     result[7].is_null = &is_null[7];
+
+    // country
     result[8].buffer_type = MYSQL_TYPE_STRING;
     result[8].buffer = country;
     result[8].buffer_length = sizeof(country);
     result[8].length = &len[8];
     result[8].is_null = &is_null[8];
+
+    // is_default
     result[9].buffer_type = MYSQL_TYPE_TINY;
     result[9].buffer = &is_default;
     result[9].is_null = &is_null[9];
+
+    // addtional_info
     result[10].buffer_type = MYSQL_TYPE_STRING;
     result[10].buffer = additional_info;
     result[10].buffer_length = sizeof(additional_info);
     result[10].length = &len[10];
     result[10].is_null = &is_null[10];
+
+    // type
     result[11].buffer_type = MYSQL_TYPE_STRING;
     result[11].buffer = type;
     result[11].buffer_length = sizeof(type);
