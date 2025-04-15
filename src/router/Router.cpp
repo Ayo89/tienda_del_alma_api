@@ -63,7 +63,12 @@ void Router::setup_routes()
             AddressController AddressController(db_);
             response = AddressController.getAddressesByUserId(request);
         } 
-        if (method == web::http::methods::POST && path == U("/address"))
+        else if (method == web::http::methods::GET && path.find(U("/address/")) != std::string::npos)
+        {
+            AddressController AddressController(db_);
+            response = AddressController.getAddressById(request);
+        }
+        else if (method == web::http::methods::POST && path == U("/address"))
         {
             AddressController AddressController(db_);
             response = AddressController.createAddress(request);

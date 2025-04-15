@@ -25,7 +25,6 @@ std::optional<std::vector<Product>> ProductModel::getAllProducts()
         return std::nullopt;
     }
     auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
-
     if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
     {
         std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;

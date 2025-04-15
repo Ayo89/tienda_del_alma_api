@@ -47,11 +47,8 @@ web::http::http_response AddressController::createAddress(const web::http::http_
 web::http::http_response AddressController::getAddressesByUserId(const web::http::http_request &request)
 {
     web::http::http_response response;
-    std::cout << "Entrando a getAddressesByUserId" << std::endl;
     // Obtener user_id a través del token (desde cookies)
     std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
-    std::cout << "user_id: " << user_id.value() << std::endl;
-    std::cout << "user_id: " << user_id.value_or("No se encontró user_id") << std::endl;
     if (!user_id.has_value())
     {
         response.set_status_code(web::http::status_codes::Unauthorized);
@@ -107,4 +104,55 @@ web::http::http_response AddressController::getAddressesByUserId(const web::http
     }
 
     return response;
+}
+
+web::http::http_response AddressController::getAddressById(const web::http::http_request &request)
+{
+    web::http::http_response response;
+    std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
+    if (!user_id.has_value())
+    {
+        response.set_status_code(web::http::status_codes::Unauthorized);
+        response.set_body(U("Token no proporcionado o inválido"));
+        return response;
+    }
+    std::cout << "User ID: " << user_id.value() << std::endl;
+    // Obtener el ID de la dirección desde la URL
+    auto path = request.request_uri().path();
+    auto address_id_str = path.substr(path.find_last_of('/') + 1);
+    int address_id = std::stoi(address_id_str);
+    std::cout << "Address ID: " << address_id << std::endl;
+    // Obtener el tipo de dirección (billing o shipping) desde la URL
+    std::string type = path.find("/billing/") != std::string::npos ? "billing" : "shipping";
+    std::cout << "Address Type: " << type << std::endl;
+
+    // Consultar dirección por ID
+    auto address = model.getAddressById(address_id, std::stoi(user_id.value()), type);
+    if (!address.has_value())
+    {
+        std::cout << "⚠️ No se obtuvo valor de dirección (std::nullopt)" << std::endl;
+        response.set_status_code(web::http::status_codes::NotFound);
+        response.set_body(U("Dirección no encontrada"));
+        return response;
+    }
+    else
+    {
+        std::cout << "✅ Dirección encontrada: " << address->id << std::endl;
+        web::json::value json_response;
+        json_response[U("id")] = web::json::value::number(address->id);
+        json_response[U("first_name")] = web::json::value::string(address->first_name);
+        json_response[U("last_name")] = web::json::value::string(address->last_name);
+        json_response[U("phone")] = web::json::value::string(address->phone);
+        json_response[U("street")] = web::json::value::string(address->street);
+        json_response[U("city")] = web::json::value::string(address->city);
+        json_response[U("province")] = web::json::value::string(address->province);
+        json_response[U("postal_code")] = web::json::value::string(address->postal_code);
+        json_response[U("country")] = web::json::value::string(address->country);
+        json_response[U("is_default")] = web::json::value::boolean(address->is_default);
+        json_response[U("additional_info")] = web::json::value::string(address->additional_info);
+        json_response[U("type")] = web::json::value::string(address->type);
+        response.set_body(json_response);                      // Faltaba esta línea
+        response.set_status_code(web::http::status_codes::OK); // Faltaba esta línea
+        return response;                                       // Faltaba esta línea
+    };
 }
