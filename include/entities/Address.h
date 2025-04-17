@@ -17,6 +17,7 @@ struct Address
     bool is_default;
     std::string additional_info;
     std::string type; // "billing" o "shipping"
+    std::string created_at;
 };
 
 #endif

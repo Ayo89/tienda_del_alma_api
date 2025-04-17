@@ -73,15 +73,13 @@ void Router::setup_routes()
             AddressController AddressController(db_);
             response = AddressController.createAddress(request);
         }
-/*         else if (method == web::http::methods::PUT && path == U("/address"))
+        else if(method == web::http::methods::PUT && path.find(U("/address")) != std::string::npos)
         {
-            response = AddressController::updateAddress(request, db_);
+            std::cout<<'entrando en put address'<<std::endl;
+            AddressController AddressController(db_);
+            response = AddressController.updateAddress(request);
         }
-        else if (method == web::http::methods::DELETE && path == U("/address"))
-        {
-            response = AddressController::deleteAddress(request, db_);
-        }
- */
+    
 
         // 🔹 Añadir encabezados CORS
         Server::add_cors_headers(response);

@@ -39,8 +39,8 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "DROP TABLE IF EXISTS products;",
             "DROP TABLE IF EXISTS categories;",
             "DROP TABLE IF EXISTS brands;",
-            /*             "DROP TABLE IF EXISTS shipping_addresses;", */
-            /*             "DROP TABLE IF EXISTS billing_addresses;", */
+/*                       "DROP TABLE IF EXISTS shipping_addresses;", 
+                        "DROP TABLE IF EXISTS billing_addresses;", */
             "DROP TABLE IF EXISTS password_resets;",
             /*            "DROP TABLE IF EXISTS users;" */};
         for (const char *q : dropQueries)

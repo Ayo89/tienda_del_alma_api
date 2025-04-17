@@ -1,3 +1,4 @@
+
 #include "db/DatabaseConnection.h"
 #include <iostream>
 #include "env/EnvLoader.h"
@@ -5,28 +6,23 @@
 DatabaseConnection::DatabaseConnection()
     : connection(nullptr)
 {
-    // Cargar las variables del archivo .env directamente dentro del constructor
     EnvLoader env(".env");
-    env.load(); // Cargar el archivo .env
+    env.load();
 
     host = env.get("DB_HOST", "localhost");
     user = env.get("DB_USER", "root");
-    password = env.get("DB_PASSWORD", ""); // No imprimir la contraseña en producción
+    password = env.get("DB_PASSWORD", "");
     dbname = env.get("DB_NAME", "tienda_del_alma");
-    port = std::stoi(env.get("DB_PORT", "3306"));
-
-// Si deseas imprimir información de debug, puedes habilitarlo con una bandera de compilación
-#ifdef DEBUG
-    std::cerr << "Conectando a la base de datos en " << host << ":" << port << " con el usuario " << user << std::endl;
-#endif
+    port = static_cast<unsigned int>(std::stoi(env.get("DB_PORT", "3306")));
 }
 
-DatabaseConnection::DatabaseConnection(const std::string &host, const std::string &user, const std::string &password, const std::string &dbname, unsigned int port)
-    : host(host), user(user), password(password), dbname(dbname), port(port), connection(nullptr)
+DatabaseConnection::DatabaseConnection(const std::string &host,
+                                       const std::string &user,
+                                       const std::string &password,
+                                       const std::string &dbname,
+                                       unsigned int port)
+    : connection(nullptr), host(host), user(user), password(password), dbname(dbname), port(port)
 {
-#ifdef DEBUG
-    std::cerr << "Conectando a la base de datos en " << host << ":" << port << " con el usuario " << user << std::endl;
-#endif
 }
 
 DatabaseConnection::~DatabaseConnection()
@@ -36,41 +32,45 @@ DatabaseConnection::~DatabaseConnection()
 
 bool DatabaseConnection::connect()
 {
-    if (connection != nullptr)
+    if (connection)
     {
-        // Verifica si la conexión sigue viva
         if (mysql_ping(connection) == 0)
         {
             std::cout << "Conexión ya activa." << std::endl;
             return true;
         }
-        else
-        {
-            std::cerr << "Conexión inactiva o perdida. Reintentando reconexión..." << std::endl;
-
-            // Cierra la conexión anterior antes de reiniciar
-            mysql_close(connection);
-            connection = nullptr;
-        }
+        mysql_close(connection);
+        connection = nullptr;
     }
 
-    // Inicializa una nueva conexión
+    // Inicializa nueva conexión
     connection = mysql_init(nullptr);
-    if (connection == nullptr)
+    if (!connection)
     {
-        std::cerr << "Error al inicializar la conexión: " << mysql_error(connection) << std::endl;
+        std::cerr << "Error al inicializar la conexión: " << mysql_error(nullptr) << std::endl;
         return false;
     }
 
-    if (!mysql_real_connect(connection, host.c_str(), user.c_str(), password.c_str(), dbname.c_str(), port, nullptr, 0))
+    // Reportar truncaciones de datos como errores
+    bool report = 1;
+    mysql_options(connection, MYSQL_REPORT_DATA_TRUNCATION, &report);
+
+    if (!mysql_real_connect(connection,
+                            host.c_str(),
+                            user.c_str(),
+                            password.c_str(),
+                            dbname.c_str(),
+                            port,
+                            nullptr,
+                            0))
     {
         std::cerr << "Error al conectar a la base de datos: " << mysql_error(connection) << std::endl;
-        mysql_close(connection); // Esto es seguro aquí porque fue recién creado
+        mysql_close(connection);
         connection = nullptr;
         return false;
     }
 
-    std::cout << "Conexión exitosa a la base de datos '" << dbname << "'." << std::endl;
+    std::cout << "Conexión exitosa a '" << dbname << "'." << std::endl;
     return true;
 }
 
@@ -86,7 +86,6 @@ void DatabaseConnection::close()
 
 MYSQL *DatabaseConnection::getConnection()
 {
-    // Si la conexión no está inicializada, intentar conectarse.
     if (!connection)
     {
         std::cerr << "No existe conexión activa. Intentando conectar..." << std::endl;
@@ -96,18 +95,14 @@ MYSQL *DatabaseConnection::getConnection()
             return nullptr;
         }
     }
-    else
+    else if (mysql_ping(connection) != 0)
     {
-        // Verificar que la conexión esté activa mediante mysql_ping.
-        if (mysql_ping(connection) != 0)
+        std::cerr << "Conexión inactiva o perdida. Reintentando reconexión..." << std::endl;
+        close();
+        if (!connect())
         {
-            std::cerr << "Conexión inactiva o perdida. Reintentando reconexión..." << std::endl;
-            close();
-            if (!connect())
-            {
-                std::cerr << "Error al reconectar en getConnection()." << std::endl;
-                return nullptr;
-            }
+            std::cerr << "Error al reconectar en getConnection()." << std::endl;
+            return nullptr;
         }
     }
     return connection;

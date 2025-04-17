@@ -225,10 +225,10 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
 
     std::vector<Address> addresses;
     const char *query =
-        "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info, 'billing' AS type "
+        "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info, created_at, 'billing' AS type "
         "FROM billing_addresses WHERE user_id = ? "
         "UNION "
-        "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info, 'shipping' AS type "
+        "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info, created_at, 'shipping' AS type "
         "FROM shipping_addresses WHERE user_id = ?";
 
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
@@ -259,16 +259,16 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
         return std::nullopt;
     }
 
-    MYSQL_BIND result[12];
+    MYSQL_BIND result[13];
     memset(result, 0, sizeof(result));
 
     // Define local variables to hold result data
     int id;
     char first_name[255], last_name[255], phone[50], street[255], city[100],
-        province[100], postal_code[20], country[100], additional_info[1000], type[20];
+        province[100], postal_code[20], country[100], additional_info[1000], created_at[100], type[20];
     char is_default;
-    unsigned long len[12];
-    bool is_null[12];
+    unsigned long len[13];
+    bool is_null[13];
 
     // Bind each column from the query result
 
@@ -345,12 +345,19 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
     result[10].length = &len[10];
     result[10].is_null = &is_null[10];
 
-    // type
+    // created_at
     result[11].buffer_type = MYSQL_TYPE_STRING;
-    result[11].buffer = type;
-    result[11].buffer_length = sizeof(type);
+    result[11].buffer = created_at;
+    result[11].buffer_length = sizeof(created_at);
     result[11].length = &len[11];
     result[11].is_null = &is_null[11];
+
+    // type
+    result[12].buffer_type = MYSQL_TYPE_STRING;
+    result[12].buffer = type;
+    result[12].buffer_length = sizeof(type);
+    result[12].length = &len[12];
+    result[12].is_null = &is_null[12];
 
     // Bind the result buffers to the statement
     if (mysql_stmt_bind_result(stmt, result) != 0)
@@ -377,7 +384,8 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
         address.country = is_null[8] ? "" : std::string(country, len[8]);
         address.is_default = is_default;
         address.additional_info = is_null[10] ? "" : std::string(additional_info, len[10]);
-        address.type = is_null[11] ? "" : std::string(type, len[11]);
+        address.created_at = is_null[11] ? "" : std::string(created_at, len[11]);
+        address.type = is_null[12] ? "" : std::string(type, len[12]);
 
         addresses.push_back(address);
     }
@@ -396,9 +404,8 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
 
     std::cout << "✅ Total addresses found: " << addresses.size() << std::endl;
     return addresses;
-}
-//---------------->>GET ADDRESS BY ID<<------------------//
-/* std::optional<int> AddressModel::updateAddress(
+} //---------------->>GET ADDRESS BY ID<<------------------//
+std::optional<int> AddressModel::updateAddress(
     const int &user_id,
     const int &address_id,
     const std::string &first_name,
@@ -409,9 +416,9 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
     const std::string &province,
     const std::string &postal_code,
     const std::string &country,
-    const std::string &type = "",
-    const bool &is_default = false,
-    const std::string &additional_info = "")
+    const bool &is_default,
+    const std::string &type,
+    const std::string &additional_info)
 {
     // Obtener la conexión a la base de datos
     MYSQL *conn = db.getConnection();
@@ -421,13 +428,22 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
         return std::nullopt;
     }
 
-    // Sentencia SQL para actualizar la dirección
-    // Se actualizan los campos y se filtra por el id de la dirección y el user_id (por seguridad)
-    const char *query =
-        "UPDATE addresses "
-        "SET first_name = ?, last_name = ?, phone = ?, street = ?, city = ?, province = ?, postal_code = ?, country = ?, type = ?, is_default = ?, additional_info = ? "
-        "WHERE id = ? AND user_id = ?";
+    const char *query = nullptr;
 
+    if (type == "billing")
+    {
+        query =
+            "UPDATE billing_addresses "
+            "SET first_name = ?, last_name = ?, phone = ?, street = ?, city = ?, province = ?, postal_code = ?, country = ?, is_default = ?, additional_info = ? "
+            "WHERE id = ? AND user_id = ?";
+    }
+    else
+    {
+        query =
+            "UPDATE shipping_addresses "
+            "SET first_name = ?, last_name = ?, phone = ?, street = ?, city = ?, province = ?, postal_code = ?, country = ?, is_default = ?, additional_info = ? "
+            "WHERE id = ? AND user_id = ?";
+    }
     // Inicializar la sentencia
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
     if (!stmt)
@@ -446,7 +462,7 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
     }
 
     // Declarar el arreglo para los parámetros. La cantidad total de parámetros en la consulta es 13
-    constexpr size_t NUM_PARAMS = 13;
+    constexpr size_t NUM_PARAMS = 12;
     MYSQL_BIND param[NUM_PARAMS];
     memset(param, 0, sizeof(param));
 
@@ -492,32 +508,27 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
     param[7].buffer = (void *)country.c_str();
     param[7].buffer_length = country.size();
 
-    // 9. type
-    param[8].buffer_type = MYSQL_TYPE_STRING;
-    param[8].buffer = (void *)type.c_str();
-    param[8].buffer_length = type.size();
-
-    // 10. is_default
+    // 9. is_default
     // Convertir bool a un unsigned char (o TINYINT) ya que MySQL espera un entero en este caso.
     unsigned char is_default_val = is_default ? 1 : 0;
-    param[9].buffer_type = MYSQL_TYPE_TINY;
-    param[9].buffer = (void *)&is_default_val;
-    param[9].buffer_length = sizeof(is_default_val);
+    param[8].buffer_type = MYSQL_TYPE_TINY;
+    param[8].buffer = (void *)&is_default_val;
+    param[8].buffer_length = sizeof(is_default_val);
 
-    // 11. additional_info
-    param[10].buffer_type = MYSQL_TYPE_STRING;
-    param[10].buffer = (void *)additional_info.c_str();
-    param[10].buffer_length = additional_info.size();
+    // 10. additional_info
+    param[9].buffer_type = MYSQL_TYPE_STRING;
+    param[9].buffer = (void *)additional_info.c_str();
+    param[9].buffer_length = additional_info.size();
 
-    // 12. address_id (ID de la dirección a actualizar)
+    // 11. address_id (ID de la dirección a actualizar)
+    param[10].buffer_type = MYSQL_TYPE_LONG;
+    param[10].buffer = (void *)&address_id;
+    param[10].buffer_length = sizeof(address_id);
+
+    // 12. user_id (ID del usuario dueño de la dirección)
     param[11].buffer_type = MYSQL_TYPE_LONG;
-    param[11].buffer = (void *)&address_id;
-    param[11].buffer_length = sizeof(address_id);
-
-    // 13. user_id (para asegurarse de que la dirección pertenece al usuario)
-    param[12].buffer_type = MYSQL_TYPE_LONG;
-    param[12].buffer = (void *)&user_id;
-    param[12].buffer_length = sizeof(user_id);
+    param[11].buffer = (void *)&user_id;
+    param[11].buffer_length = sizeof(user_id);
 
     // Enlazar los parámetros a la sentencia
     if (mysql_stmt_bind_param(stmt, param) != 0)
@@ -543,10 +554,11 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
 
     // En caso de éxito, retornamos la cantidad de filas actualizadas (usualmente 1).
     return static_cast<int>(affected);
-} */
+}
+//---------------->>END UPDATE ADDRESS<<------------------//
 
 //---------------->>GET ADDRESS BY ID AND USER ID<<------------------//
- std::optional<Address> AddressModel::getAddressById(const int &address_id, const int &user_id, const std::string &type)
+std::optional<Address> AddressModel::getAddressById(const int &address_id, const int &user_id, const std::string &type)
 {
     // Obtener la conexión a la base de datos
 
@@ -564,13 +576,13 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
     if (type == "billing")
     {
         query =
-            "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info "
+            "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info, created_at "
             "FROM billing_addresses WHERE id = ? AND user_id = ?";
     }
     else
     {
         query =
-            "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info "
+            "SELECT id, first_name, last_name, phone, street, city, province, postal_code, country, is_default, additional_info, created_at "
             "FROM shipping_addresses WHERE id = ? AND user_id = ?";
     }
     // Inicializar la sentencia
@@ -614,14 +626,14 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
         return std::nullopt;
     }
     // Definir el arreglo para los resultados
-    MYSQL_BIND result[11];
+    MYSQL_BIND result[12];
     memset(result, 0, sizeof(result));
     int id;
-    char first_name[255], last_name[255], phone[50], street[255], city[100], province[100], postal_code[20], country[100], additional_info[1000];
+    char first_name[255], last_name[255], phone[50], street[255], city[100], province[100], postal_code[20], country[100], additional_info[1000], created_at[100];
     char is_default;
 
-    unsigned long len[11];
-    bool is_null[11];
+    unsigned long len[12];
+    bool is_null[12];
     // id
     result[0].buffer_type = MYSQL_TYPE_LONG;
     result[0].buffer = &id;
@@ -685,6 +697,13 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
     result[10].length = &len[10];
     result[10].is_null = &is_null[10];
 
+    // created_at
+    result[11].buffer_type = MYSQL_TYPE_STRING;
+    result[11].buffer = created_at;
+    result[11].buffer_length = sizeof(created_at);
+    result[11].length = &len[11];
+    result[11].is_null = &is_null[11];
+
     // Enlazar los resultados a la sentencia
     if (mysql_stmt_bind_result(stmt, result) != 0)
     {
@@ -706,6 +725,7 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
         address.country = is_null[8] ? "" : std::string(country, len[8]);
         address.is_default = is_default;
         address.additional_info = is_null[10] ? "" : std::string(additional_info, len[10]);
+        address.created_at = is_null[11] ? "" : std::string(created_at, len[11]);
     }
     else if (fetch_result == MYSQL_NO_DATA)
     {
@@ -718,5 +738,6 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
         return std::nullopt;
     }
     std::cout << "Dirección encontrada: " << address.id << std::endl;
+
     return address;
-} 
+}

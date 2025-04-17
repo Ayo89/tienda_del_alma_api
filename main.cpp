@@ -40,14 +40,13 @@ int main()
     utility::string_t server_address = U(env.get("SERVER_ADDRESS", "http://localhost:8080"));
 
     // Inicializar la conexión a la base de datos con las variables del .env
-    db = DatabaseConnection(host, user, password, dbname, port); // Aquí inicializas la conexión global
-
-    // Conectar a la base de datos
-    if (!db.connect())
+    DatabaseConnection seConnection(host, user, password, dbname, port);
+    if (!seConnection.connect())
     {
-        wcout << L"Error: No se pudo conectar a la base de datos" << endl;
+        std::cerr << "No pudo conectarse a la BD\n";
         return 1;
     }
+
     DatabaseInitializer dbInizializer(db);
     if (!dbInizializer.initialize(true))
     {
@@ -59,7 +58,7 @@ int main()
     {
         wcout << L"Error: No se pudo insertar productos de muestra" << endl;
     }
-    
+
     try
     {
         Server server(server_address, db);

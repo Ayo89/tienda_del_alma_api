@@ -24,7 +24,10 @@ std::optional<std::vector<Product>> ProductModel::getAllProducts()
         std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
         return std::nullopt;
     }
+
+    // Utilizamos RAII para garantizar que se cierre el statement
     auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+
     if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
     {
         std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;
@@ -39,33 +42,58 @@ std::optional<std::vector<Product>> ProductModel::getAllProducts()
 
     MYSQL_BIND result[7];
     memset(result, 0, sizeof(result));
-    int id, category_id;
-    char sku[50], name[100], description[255], image_url[255];
-    double price;
-    unsigned long len[4];
 
+    // Variables para resultados
+    int id = 0, category_id = 0;
+    char sku[50] = {0}, name[100] = {0}, description[255] = {0}, image_url[255] = {0};
+    double price = 0.0;
+    unsigned long len[7] = {0};
+    bool is_null[7] = {0};
+    bool error[7] = {0};
+
+    // Vincular cada columna
     result[0].buffer_type = MYSQL_TYPE_LONG;
-    result[0].buffer = &id;
+    result[0].buffer = (void *)&id;
+    result[0].is_null = &is_null[0];
+    result[0].error = &error[0];
+
     result[1].buffer_type = MYSQL_TYPE_STRING;
-    result[1].buffer = sku;
+    result[1].buffer = (void *)sku;
     result[1].buffer_length = sizeof(sku);
     result[1].length = &len[1];
+    result[1].is_null = &is_null[1];
+    result[1].error = &error[1];
+
     result[2].buffer_type = MYSQL_TYPE_STRING;
-    result[2].buffer = name;
+    result[2].buffer = (void *)name;
     result[2].buffer_length = sizeof(name);
     result[2].length = &len[2];
+    result[2].is_null = &is_null[2];
+    result[2].error = &error[2];
+
     result[3].buffer_type = MYSQL_TYPE_STRING;
-    result[3].buffer = description;
+    result[3].buffer = (void *)description;
     result[3].buffer_length = sizeof(description);
     result[3].length = &len[3];
+    result[3].is_null = &is_null[3];
+    result[3].error = &error[3];
+
     result[4].buffer_type = MYSQL_TYPE_DOUBLE;
-    result[4].buffer = &price;
+    result[4].buffer = (void *)&price;
+    result[4].is_null = &is_null[4];
+    result[4].error = &error[4];
+
     result[5].buffer_type = MYSQL_TYPE_STRING;
-    result[5].buffer = image_url;
+    result[5].buffer = (void *)image_url;
     result[5].buffer_length = sizeof(image_url);
     result[5].length = &len[5];
+    result[5].is_null = &is_null[5];
+    result[5].error = &error[5];
+
     result[6].buffer_type = MYSQL_TYPE_LONG;
-    result[6].buffer = &category_id;
+    result[6].buffer = (void *)&category_id;
+    result[6].is_null = &is_null[6];
+    result[6].error = &error[6];
 
     if (mysql_stmt_bind_result(stmt, result) != 0)
     {

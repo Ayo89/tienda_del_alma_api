@@ -1,13 +1,30 @@
-// include/model/DatabaseConnection.h
-#ifndef DATABASE_CONNECTION_H
-#define DATABASE_CONNECTION_H
+#ifndef DATABASECONNECTION_H
+#define DATABASECONNECTION_H
 
 #include <mysql/mysql.h>
 #include <string>
-#include <stdexcept>
 
 class DatabaseConnection
 {
+public:
+    DatabaseConnection();
+    DatabaseConnection(const std::string &host,
+                       const std::string &user,
+                       const std::string &password,
+                       const std::string &dbname,
+                       unsigned int port);
+    ~DatabaseConnection();
+
+    // Evitar copias y moves accidentales
+    DatabaseConnection(const DatabaseConnection &) = delete;
+    DatabaseConnection &operator=(const DatabaseConnection &) = delete;
+    DatabaseConnection(DatabaseConnection &&) = delete;
+    DatabaseConnection &operator=(DatabaseConnection &&) = delete;
+
+    bool connect();
+    void close();
+    MYSQL *getConnection();
+
 private:
     MYSQL *connection;
     std::string host;
@@ -15,16 +32,6 @@ private:
     std::string password;
     std::string dbname;
     unsigned int port;
-
-public:
-    DatabaseConnection(); // Constructor por defecto
-    DatabaseConnection(const std::string &host, const std::string &user, const std::string &password, const std::string &dbname, unsigned int port);
-    ~DatabaseConnection();
-
-    bool connect();
-    void close();
-    MYSQL *getConnection();
-
 };
 
-#endif // DATABASE_CONNECTION_H
+#endif // DATABASECONNECTION_H

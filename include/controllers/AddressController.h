@@ -20,6 +20,7 @@ public:
     web::http::http_response createAddress(const web::http::http_request &request);
     web::http::http_response getAddressesByUserId(const web::http::http_request &request);
     web::http::http_response getAddressById(const web::http::http_request &request);
+    web::http::http_response updateAddress(const web::http::http_request &request);
 };
 
 #endif
