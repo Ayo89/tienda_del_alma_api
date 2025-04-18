@@ -3,7 +3,8 @@
 
 bool DatabaseInitializer::executeQuery(const std::string &query)
 {
-    MYSQL *conn = connection.getConnection();
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
     if (!conn)
     {
         std::cerr << "Conexión no establecida." << std::endl;
@@ -23,7 +24,8 @@ bool DatabaseInitializer::executeQuery(const std::string &query)
 
 bool DatabaseInitializer::initialize(bool forceInit)
 {
-    MYSQL *conn = connection.getConnection();
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
     if (!conn)
     {
         std::cerr << "Conexión no establecida." << std::endl;
@@ -39,8 +41,8 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "DROP TABLE IF EXISTS products;",
             "DROP TABLE IF EXISTS categories;",
             "DROP TABLE IF EXISTS brands;",
-/*                       "DROP TABLE IF EXISTS shipping_addresses;", 
-                        "DROP TABLE IF EXISTS billing_addresses;", */
+            /*                       "DROP TABLE IF EXISTS shipping_addresses;",
+                                    "DROP TABLE IF EXISTS billing_addresses;", */
             "DROP TABLE IF EXISTS password_resets;",
             /*            "DROP TABLE IF EXISTS users;" */};
         for (const char *q : dropQueries)

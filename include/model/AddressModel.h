@@ -10,11 +10,9 @@
 
 class AddressModel
 {
-private:
-    DatabaseConnection &db;
 
 public:
-    AddressModel(DatabaseConnection &database) : db(database) {}
+    AddressModel();
     std::optional<int> createAddress(
         const int &user_id,
         const std::string &first_name,

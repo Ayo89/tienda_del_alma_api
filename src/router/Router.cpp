@@ -1,8 +1,11 @@
 #include "router/Router.h"
 #include "server/Server.h"
 
-Router::Router(web::http::experimental::listener::http_listener &listener, DatabaseConnection &db)
-    : listener_(listener), db_(db) {}
+AuthController authController;
+
+
+Router::Router(web::http::experimental::listener::http_listener &listener)
+    : listener_(listener) {}
 
 void Router::setup_routes()
 {
@@ -24,15 +27,15 @@ void Router::setup_routes()
         // Procesar según el método y la ruta
         if (method == web::http::methods::POST && path == U("/signup"))
         {
-            response = AuthController::signup(request, db_);
+            response = authController.signup(request);
         }
         else if (method == web::http::methods::POST && path == U("/login"))
         {
-            response = AuthController::login(request, db_); 
+            response = authController.login(request);
         }
         else if (method == web::http::methods::GET && path == U("/users"))
         {
-            /* response = UserController::getUsers(db_); */
+            
         }
 
 
@@ -40,7 +43,7 @@ void Router::setup_routes()
 
         if(method == web::http::methods::GET && path == U("/products"))
         {
-            ProductController model(db_);
+            ProductController model;
             response = model.getAllProducts();
         }
 /*         else if (method == web::http::methods::POST && path == U("/products"))
@@ -60,24 +63,23 @@ void Router::setup_routes()
 
       if(method == web::http::methods::GET && path == U("/address"))
         {
-            AddressController AddressController(db_);
-            response = AddressController.getAddressesByUserId(request);
+            AddressController addressController;
+            response = addressController.getAddressesByUserId(request);
         } 
         else if (method == web::http::methods::GET && path.find(U("/address/")) != std::string::npos)
         {
-            AddressController AddressController(db_);
-            response = AddressController.getAddressById(request);
+            AddressController addressController;
+            response = addressController.getAddressById(request);
         }
         else if (method == web::http::methods::POST && path == U("/address"))
         {
-            AddressController AddressController(db_);
-            response = AddressController.createAddress(request);
+            AddressController addressController;
+            response = addressController.createAddress(request);
         }
         else if(method == web::http::methods::PUT && path.find(U("/address")) != std::string::npos)
         {
-            std::cout<<'entrando en put address'<<std::endl;
-            AddressController AddressController(db_);
-            response = AddressController.updateAddress(request);
+            AddressController addressController;
+            response = addressController.updateAddress(request);
         }
     
 

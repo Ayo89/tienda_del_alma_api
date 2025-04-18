@@ -10,11 +10,9 @@
 
 class ProductModel
 {
-private:
-    DatabaseConnection &db; // Referencia almacenada
 
 public:
-    ProductModel(DatabaseConnection &database) : db(database) {}
+    ProductModel();
     bool insertSampleProducts();
     std::optional<std::vector<Product>> getAllProducts();
 };

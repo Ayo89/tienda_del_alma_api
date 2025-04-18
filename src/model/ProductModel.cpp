@@ -6,12 +6,16 @@
 #include <memory>   // Para std::unique_ptr
 #include <cstring>  // Para strlen
 
+ProductModel::ProductModel() {} // Constructor predeterminado
+
 std::optional<std::vector<Product>> ProductModel::getAllProducts()
 {
+
+    DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
     if (!conn || mysql_ping(conn) != 0)
     {
-        std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
+        std::cerr << "Error: No active database connection (Singleton): " << mysql_error(conn) << std::endl;
         return std::nullopt;
     }
 
@@ -132,13 +136,16 @@ bool ProductModel::insertSampleProducts()
         "('Velas'),"
         "('Cristales'),"
         "('Kits de Ritual');"};
+
+    // Obtenemos la instancia única de DatabaseConnection usando getInstance()
+    DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
-    if (!conn)
+    if (!conn || mysql_ping(conn) != 0)
     {
-        std::cerr << "Error: No active database connection" << std::endl;
+        std::cerr << "Error: No active database connection (Singleton): " << mysql_error(conn) << std::endl;
         return false;
     }
-    DatabaseInitializer dbInitializer(db);
+    DatabaseInitializer dbInitializer;
     for (const std::string &query : categoryQueries)
     {
         if (!dbInitializer.executeQuery(query))

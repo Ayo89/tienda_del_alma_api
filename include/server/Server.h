@@ -12,7 +12,7 @@ class Server
 {
 public:
     // Constructor que solo toma la dirección y la base de datos, sin iniciar nada
-    Server(const utility::string_t &address, DatabaseConnection &db);
+    Server(const utility::string_t &address);
 
     // Métodos para controlar el servidor
     static void add_cors_headers(http_response &response);
@@ -22,7 +22,6 @@ public:
 
 private:
     web::http::experimental::listener::http_listener listener_;
-    DatabaseConnection &db_;
     Router router_; // Agregamos el Router
 };
 

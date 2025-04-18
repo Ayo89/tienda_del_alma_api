@@ -13,7 +13,9 @@ using namespace web;
 using namespace web::http;
 using namespace web::http::client;
 
-http_response AuthController::signup(const http_request &request, DatabaseConnection &db)
+AuthController::AuthController() : userController() {} // Inicializamos el modelo en el constructor
+
+http_response AuthController::signup(const http_request &request)
 {
     // Creación de una respuesta predeterminada, que se completará al final del proceso
     http_response response(status_codes::OK);
@@ -21,11 +23,11 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
     env.load(); // Cargar el archivo .env
 
     // Este futuro representará la ejecución asincrónica de la lógica de signup
-    std::future<void> signup_future = std::async(std::launch::async, [request, &response, &db, &env]()
+    std::future<void> signup_future = std::async(std::launch::async, [request, &response, &env, this]()
                                                  {
                                                      // Extraer el cuerpo JSON de la solicitud
                                                      request.extract_json()
-                                                         .then([&response, &db, &env](json::value body)
+                                                         .then([&response, &env, this](json::value body)
                                                                {
                 try {
                     // Verificar que el cuerpo sea un objeto JSON válido
@@ -48,8 +50,7 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
                         }
 
                         // Llamar al controlador de usuarios
-                        UserController userController(db);
-                        std::optional<int> user_id = userController.createUser(first_name, hashed, email);
+                        std::optional<int> user_id = this->userController.createUser(first_name, hashed, email);
                         std::cout<<user_id.value()<<std::endl;    
                         if (user_id.has_value()) {
                             std::string secret = env.get("JWT_SECRET", "");
@@ -95,7 +96,7 @@ http_response AuthController::signup(const http_request &request, DatabaseConnec
     return response; // Esto se ejecuta cuando el futuro ha completado su trabajo
 }
 
-http_response AuthController::login(const http_request &request, DatabaseConnection &db)
+http_response AuthController::login(const http_request &request)
 {
     // Respuesta predeterminada
     http_response response(status_codes::OK);
@@ -103,10 +104,10 @@ http_response AuthController::login(const http_request &request, DatabaseConnect
     env.load(); // Cargar variables de entorno
 
     // Ejecutar la lógica de login de forma asíncrona
-    std::future<void> login_future = std::async(std::launch::async, [request, &response, &db, &env]()
+    std::future<void> login_future = std::async(std::launch::async, [request, &response, &env, this]()
                                                 {
                                                     // Extraer el cuerpo JSON del request
-                                                    request.extract_json().then([&response, &db, &env](json::value body)
+                                                    request.extract_json().then([&response, &env, this](json::value body)
                                                                                 {
             try {
                 if (body.is_object())
@@ -117,8 +118,7 @@ http_response AuthController::login(const http_request &request, DatabaseConnect
 
                     // Usamos el controlador de usuarios para buscar el usuario por email.
                     // Asegúrate de tener implementado getUserByEmail en UserController.
-                    UserController userController(db);
-                    auto userOpt = userController.getUserByEmail(email);
+                    auto userOpt = this->userController.getUserByEmail(email);
                     
                     if (!userOpt.has_value()) {
                         response.set_status_code(status_codes::Unauthorized);

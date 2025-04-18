@@ -11,12 +11,11 @@
 class Router
 {
 public:
-    Router(web::http::experimental::listener::http_listener &listener, DatabaseConnection &db);
+    Router(web::http::experimental::listener::http_listener &listener);
     void setup_routes();
 
 private:
     web::http::experimental::listener::http_listener &listener_;
-    DatabaseConnection &db_;
 };
 
 #endif

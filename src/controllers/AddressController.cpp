@@ -1,6 +1,9 @@
 #include "controllers/AddressController.h"
 #include "services/jwt/JwtService.h"
 
+AddressController::AddressController() {}
+
+
 web::http::http_response AddressController::createAddress(const web::http::http_request &request)
 {
     // 1. Verificar si el token es válido y obtener el user_id

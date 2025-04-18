@@ -15,8 +15,6 @@ using namespace web;
 using namespace web::http;
 using namespace web::http::experimental::listener;
 using namespace std;
-// Declarar la conexión globalmente
-DatabaseConnection db;
 
 int main()
 {
@@ -39,21 +37,18 @@ int main()
     unsigned int port = stoi(env.get("DB_PORT", "3306"));
     utility::string_t server_address = U(env.get("SERVER_ADDRESS", "http://localhost:8080"));
 
-    // Inicializar la conexión a la base de datos con las variables del .env
-    DatabaseConnection seConnection(host, user, password, dbname, port);
-    if (!seConnection.connect())
+    DatabaseInitializer dbInitializer;
+    if (!dbInitializer.initialize(true))
     {
-        std::cerr << "No pudo conectarse a la BD\n";
+        std::cerr << "Error al inicializar la base de datos." << std::endl;
         return 1;
     }
-
-    DatabaseInitializer dbInizializer(db);
-    if (!dbInizializer.initialize(true))
+    else
     {
-        wcout << L"Error: No se pudo inicializar la base de datos" << endl;
+        std::cout << "Base de datos inicializada correctamente." << std::endl;
     }
-    // Crear la tabla de productos
-    ProductModel productModel(db);
+
+    ProductModel productModel;
     if (!productModel.insertSampleProducts())
     {
         wcout << L"Error: No se pudo insertar productos de muestra" << endl;
@@ -61,7 +56,7 @@ int main()
 
     try
     {
-        Server server(server_address, db);
+        Server server(server_address);
         server.start();
         string line;
         getline(cin, line);

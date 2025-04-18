@@ -3,6 +3,8 @@
 #include <cstring>
 #include <iostream>
 
+UserModel::UserModel() {}
+
 std::optional<int> UserModel::createUser(const std::string &first_name,
                                          const std::string &password,
                                          const std::string &email)
@@ -13,7 +15,7 @@ std::optional<int> UserModel::createUser(const std::string &first_name,
         std::cerr << "Error: name, password, or email cannot be empty" << std::endl;
         return std::nullopt;
     }
-
+    DatabaseConnection &db = DatabaseConnection::getInstance();
     // Obtener el puntero a la conexión MySQL
     MYSQL *conn = db.getConnection();
     if (!conn)
@@ -79,6 +81,7 @@ std::optional<int> UserModel::createUser(const std::string &first_name,
 
 std::optional<User> UserModel::findUserById(int user_id)
 {
+    DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
     if (!conn)
     {
@@ -179,6 +182,7 @@ std::optional<User> UserModel::findUserById(int user_id)
 
 std::optional<User> UserModel::findUserByEmail(const std::string &email)
 {
+    DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
     if (!conn)
     {

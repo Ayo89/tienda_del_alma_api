@@ -3,7 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
-
+AddressModel::AddressModel() {};
 //---------------->>CREATE ADDRESS<<------------------//
 std::optional<int> AddressModel::createAddress(
     const int &user_id,
@@ -28,6 +28,7 @@ std::optional<int> AddressModel::createAddress(
     }
 
     // Obtener el puntero a la conexión MySQL
+    DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
     if (!conn)
     {
@@ -216,6 +217,7 @@ std::optional<int> AddressModel::createAddress(
 //---------------->>GET ALL ADDRESSES BY USER ID<<------------------//
 std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const int &user_id)
 {
+    DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
     if (!conn || mysql_ping(conn) != 0)
     {
@@ -421,6 +423,7 @@ std::optional<int> AddressModel::updateAddress(
     const std::string &additional_info)
 {
     // Obtener la conexión a la base de datos
+    DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
     if (!conn || mysql_ping(conn) != 0)
     {
@@ -561,7 +564,7 @@ std::optional<int> AddressModel::updateAddress(
 std::optional<Address> AddressModel::getAddressById(const int &address_id, const int &user_id, const std::string &type)
 {
     // Obtener la conexión a la base de datos
-
+    DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
     if (!conn || mysql_ping(conn) != 0)
     {
