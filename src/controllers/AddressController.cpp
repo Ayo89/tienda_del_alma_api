@@ -3,7 +3,6 @@
 
 AddressController::AddressController() {}
 
-
 web::http::http_response AddressController::createAddress(const web::http::http_request &request)
 {
     // 1. Verificar si el token es válido y obtener el user_id
@@ -72,7 +71,7 @@ web::http::http_response AddressController::getAddressesByUserId(const web::http
     }
     else
     {
-        std::cout << "✅ Direcciones encontradas: " << addresses->size() << std::endl;
+        std::cout << "✅ Direcciones encontradas controlador: " << addresses->size() << std::endl;
     }
     response.set_status_code(web::http::status_codes::OK);
     if (addresses.has_value() && !addresses->empty())

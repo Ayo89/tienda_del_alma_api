@@ -392,19 +392,21 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
         addresses.push_back(address);
     }
 
-    // Check fetch result after the loop
-    if (fetch_result == MYSQL_NO_DATA)
+    if (fetch_result != 0 && fetch_result != MYSQL_NO_DATA)
     {
-        std::cout << "⚠️ No addresses found for user_id: " << user_id << std::endl;
-        return addresses; // Return an empty vector
-    }
-    else if (fetch_result != 0)
-    {
-        std::cerr << "❌ Error in mysql_stmt_fetch: " << mysql_stmt_error(stmt) << std::endl;
+        std::cerr << "❌ Error en mysql_stmt_fetch: " << mysql_stmt_error(stmt) << std::endl;
         return std::nullopt;
     }
 
-    std::cout << "✅ Total addresses found: " << addresses.size() << std::endl;
+    if (addresses.empty())
+    {
+        std::cout << "⚠️ No addresses found for user_id: " << user_id << std::endl;
+    }
+    else
+    {
+        std::cout << "✅ Total addresses found: " << addresses.size() << std::endl;
+    }
+
     return addresses;
 } //---------------->>GET ADDRESS BY ID<<------------------//
 std::optional<int> AddressModel::updateAddress(
@@ -551,8 +553,7 @@ std::optional<int> AddressModel::updateAddress(
     my_ulonglong affected = mysql_stmt_affected_rows(stmt);
     if (affected == 0)
     {
-        fprintf(stderr, "No rows updated. Verify that the address exists and belongs to the user.\n");
-        return std::nullopt;
+        fprintf(stdout, "No se realizaron cambios en la dirección (los datos son idénticos).\n");
     }
 
     // En caso de éxito, retornamos la cantidad de filas actualizadas (usualmente 1).
