@@ -3,7 +3,6 @@
 
 AuthController authController;
 
-
 Router::Router(web::http::experimental::listener::http_listener &listener)
     : listener_(listener) {}
 
@@ -81,7 +80,14 @@ void Router::setup_routes()
             AddressController addressController;
             response = addressController.updateAddress(request);
         }
-    
+
+        // ORDERS
+
+        if (method == web::http::methods::POST && path == U("/order"))
+        {
+            OrderController orderController;
+            response = orderController.createOrder(request);
+        }
 
         // 🔹 Añadir encabezados CORS
         Server::add_cors_headers(response);

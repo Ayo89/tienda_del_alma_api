@@ -1,0 +1,24 @@
+#ifndef ORDERCONTROLLER_H
+#define ORDERCONTROLLER_H
+#include <cpprest/http_msg.h>
+#include <cpprest/http_msg.h>
+#include <cpprest/json.h>
+#include <optional>
+#include <string>
+#include "db/DatabaseConnection.h"
+#include "entities/Order.h"
+#include "model/OrderModel.h"
+#include "AuthUtils.h"
+#include "services/jwt/JwtService.h"
+
+class OrderController
+{
+private:
+    OrderModel model;
+
+public:
+    OrderController();
+    web::http::http_response createOrder(const web::http::http_request &request);
+};
+
+#endif

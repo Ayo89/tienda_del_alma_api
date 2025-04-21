@@ -39,10 +39,12 @@ add_executable(tienda_del_alma
     src/controllers/UserController.cpp
     src/controllers/ProductController.cpp
     src/controllers/AddressController.cpp
+    src/controllers/OrderController.cpp
     src/controllers/AuthUtils.cpp
     src/model/UserModel.cpp
     src/model/ProductModel.cpp
     src/model/AddressModel.cpp
+    src/model/OrderModel.cpp
 
 )
 
