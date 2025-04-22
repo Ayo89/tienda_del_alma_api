@@ -32,6 +32,7 @@ public:
         const std::string &tracking_number,
         const std::string &payment_method,
         const std::string &payment_status);
+    std::optional<std::vector<Order>> getOrdersByUserId(int &user_id);
 };
 
 #endif

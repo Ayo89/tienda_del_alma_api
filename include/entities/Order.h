@@ -1,5 +1,5 @@
-#ifndef PRODUCT_H
-#define PRODUCT_H
+#ifndef ORDER_H
+#define ORDER_H
 
 #include <string>
 

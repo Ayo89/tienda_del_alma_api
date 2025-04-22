@@ -1,11 +1,14 @@
-#ifndef AUTHROUTER_H
-#define AUTHROUTER_H
+#ifndef AUTHCONTROLLER_H
+#define AUTHCONTROLLER_H
 
+#include "controllers/UserController.h"
 #include <cpprest/http_msg.h>
 #include <cpprest/json.h>
 #include <string>
-#include "db/DatabaseConnection.h"
-#include "controllers/UserController.h"
+#include <sodium.h>
+#include "env/EnvLoader.h"
+#include "services/jwt/JwtService.h"
+#include <future> // Para usar std::async
 
 class AuthController
 {
@@ -19,4 +22,4 @@ public:
     web::http::http_response login(const web::http::http_request &request);
 };
 
-#endif // AUTHROUTER_H
+#endif 

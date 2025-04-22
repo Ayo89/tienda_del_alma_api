@@ -1,5 +1,4 @@
 #include "controllers/UserController.h"
-#include <iostream>
 UserController::UserController() : model() {}
 
 std::optional<int> UserController::createUser(const std::string &first_name,

@@ -1,7 +1,9 @@
 #ifndef USERCONTROLLER_H
 #define USERCONTROLLER_H
+
 #include <optional>
 #include <string>
+#include <iostream>
 #include "entities/User.h"
 #include "model/UserModel.h"
 

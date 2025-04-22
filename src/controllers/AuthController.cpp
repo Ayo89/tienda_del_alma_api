@@ -1,19 +1,11 @@
-#include <cpprest/json.h>
-#include <sodium.h>
-#include <jwt-cpp/jwt.h>
+
 #include "controllers/AuthController.h"
-#include "db/DatabaseConnection.h"
-#include "controllers/UserController.h"
-#include "env/EnvLoader.h"
-#include <cpprest/http_client.h>
-#include "services/jwt/JwtService.h"
-#include <future> // Para usar std::async
 
 using namespace web;
 using namespace web::http;
 using namespace web::http::client;
 
-AuthController::AuthController() : userController() {} // Inicializamos el modelo en el constructor
+AuthController::AuthController() : userController() {}
 
 http_response AuthController::signup(const http_request &request)
 {

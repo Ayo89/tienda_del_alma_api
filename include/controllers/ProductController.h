@@ -1,6 +1,8 @@
 #ifndef PRODUCTCONTROLLER_H
 #define PRODUCTCONTROLLER_H
+
 #include <cpprest/http_msg.h>
+#include <cpprest/json.h>
 #include <optional>
 #include <vector>
 #include <iostream>

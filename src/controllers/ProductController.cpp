@@ -1,6 +1,5 @@
 #include "controllers/ProductController.h"
-#include <cpprest/json.h>
-#include <iostream>
+
 
 using namespace web;
 using namespace web::http;

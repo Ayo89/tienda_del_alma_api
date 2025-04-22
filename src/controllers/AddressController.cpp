@@ -1,17 +1,16 @@
 #include "controllers/AddressController.h"
-#include "services/jwt/JwtService.h"
 
 AddressController::AddressController() {}
 
 web::http::http_response AddressController::createAddress(const web::http::http_request &request)
 {
-    // 1. Verificar si el token es válido y obtener el user_id
+    // 1. Verifying user_id from token
     std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
     if (!user_id.has_value())
     {
         // Si el token es inválido o ha expirado
         web::http::http_response response(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token inválido o expirado"));
+        response.set_body(U("Unauthorized: Invalid Token or Expired"));
         return response; // Devuelves la respuesta aquí
     }
 
@@ -35,13 +34,13 @@ web::http::http_response AddressController::createAddress(const web::http::http_
     if (address_id.has_value())
     {
         web::http::http_response response(web::http::status_codes::Created);
-        response.set_body(U("Dirección creada exitosamente"));
+        response.set_body(U("Address created successfully"));
         return response; // Devuelves la respuesta aquí
     }
     else
     {
         web::http::http_response response(web::http::status_codes::InternalError);
-        response.set_body(U("Error al crear la dirección"));
+        response.set_body(U("Failed to create address"));
         return response; // Devuelves la respuesta aquí
     }
 }
@@ -54,7 +53,7 @@ web::http::http_response AddressController::getAddressesByUserId(const web::http
     if (!user_id.has_value())
     {
         response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token no proporcionado o inválido"));
+        response.set_body(U("Invalid Token or Expired"));
         return response;
     }
     std::cout << "User ID: " << user_id.value() << std::endl;
@@ -63,17 +62,19 @@ web::http::http_response AddressController::getAddressesByUserId(const web::http
 
     if (!addresses.has_value())
     {
-        std::cout << "⚠️ No se obtuvo valor de direcciones (std::nullopt)" << std::endl;
+        std::cout << "⚠️ Addresses not has value" << std::endl;
     }
     else if (addresses->empty())
     {
-        std::cout << "✅ Lista de direcciones vacía" << std::endl;
+        std::cout << "✅ No addresses found" << std::endl;
     }
     else
     {
-        std::cout << "✅ Direcciones encontradas controlador: " << addresses->size() << std::endl;
+        std::cout << "✅ Addresses found: " << addresses->size() << std::endl;
     }
+
     response.set_status_code(web::http::status_codes::OK);
+
     if (addresses.has_value() && !addresses->empty())
     {
         web::json::value json_response = web::json::value::array();
@@ -117,11 +118,12 @@ web::http::http_response AddressController::getAddressById(const web::http::http
         response.set_body(U("Token no proporcionado o inválido"));
         return response;
     }
-    // Obtener el ID de la dirección desde la URL
+    // Obtain address_id from URL
     auto path = request.request_uri().path();
     auto address_id_str = path.substr(path.find_last_of('/') + 1);
     int address_id = std::stoi(address_id_str);
-    // Obtener el tipo de dirección (billing o shipping) desde la URL
+
+    // Obtain type from query parameters
     auto query = web::uri::split_query(request.request_uri().query());
     std::string type = "shipping"; // valor por defecto
 
@@ -131,17 +133,17 @@ web::http::http_response AddressController::getAddressById(const web::http::http
         type = it->second;
     }
 
-    // Consultar dirección por ID
+    // Check if the address_id is valid
     auto address = model.getAddressById(address_id, std::stoi(user_id.value()), type);
     if (!address.has_value())
     {
         response.set_status_code(web::http::status_codes::NotFound);
-        response.set_body(U("Dirección no encontrada"));
+        response.set_body(U("Address not found"));
         return response;
     }
     else
     {
-        std::cout << "✅ Dirección encontrada: " << address->id << std::endl;
+        std::cout << "✅ Address found: " << address->id << std::endl;
         web::json::value json_response;
         json_response[U("id")] = web::json::value::number(address->id);
         json_response[U("first_name")] = web::json::value::string(address->first_name);
@@ -167,24 +169,24 @@ web::http::http_response AddressController::updateAddress(const web::http::http_
 {
     web::http::http_response response;
 
-    // 1. Obtener el user_id desde el token
+    // 1. Obtainer user_id from token (from cookies)
     std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
     if (!user_id.has_value())
     {
         response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token no proporcionado o inválido"));
+        response.set_body(U("Invalid Token or Expired"));
         return response;
     }
 
-    // 2. Extraer el ID de la dirección desde la URL
+    // 2. Obtener address_id from URL
     auto path = request.request_uri().path();
     auto address_id_str = path.substr(path.find_last_of('/') + 1);
     int address_id = std::stoi(address_id_str);
 
-    // 3. Determinar tipo de dirección
+    // 3. Obtainer type from URL
     std::string type = path.find("/billing/") != std::string::npos ? "billing" : "shipping";
 
-    // 4. Obtener el JSON del cuerpo
+    // 4. Obtain JSON body from request
     web::json::value body;
     try
     {
@@ -197,7 +199,7 @@ web::http::http_response AddressController::updateAddress(const web::http::http_
         return response;
     }
 
-    // 5. Extraer campos del JSON (validación mínima)
+    // 5. Extract fields from JSON body
     try
     {
         std::string first_name = utility::conversions::to_utf8string(body[U("first_name")].as_string());
@@ -211,7 +213,7 @@ web::http::http_response AddressController::updateAddress(const web::http::http_
         bool is_default = body[U("is_default")].as_bool();
         std::string additional_info = utility::conversions::to_utf8string(body[U("additional_info")].as_string());
 
-        // 6. Ejecutar el update en el modelo
+        // 6. Execute updateAddress method
         auto result = model.updateAddress(
             std::stoi(user_id.value()),
             address_id,
@@ -227,23 +229,23 @@ web::http::http_response AddressController::updateAddress(const web::http::http_
             type,
             additional_info);
 
-        // 7. Verificar resultado
+        // 7. Verify if the address was updated successfully
         if (!result.has_value())
         {
             response.set_status_code(web::http::status_codes::InternalError);
-            response.set_body(U("No se pudo actualizar la dirección"));
+            response.set_body(U("Failed to update address"));
             return response;
         }
 
         // 8. Responder con éxito
         response.set_status_code(web::http::status_codes::OK);
-        response.set_body(U("Dirección actualizada exitosamente"));
+        response.set_body(U("Address updated successfully"));
         return response;
     }
     catch (const std::exception &e)
     {
         response.set_status_code(web::http::status_codes::BadRequest);
-        response.set_body(U("Error al procesar los campos del cuerpo JSON"));
+        response.set_body(U("Invalid JSON body"));
         return response;
     }
 }

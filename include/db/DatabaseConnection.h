@@ -1,3 +1,6 @@
+#ifndef DATABASECONNECTION_H
+#define DATABASECONNECTION_H
+
 #pragma once
 #include <mysql/mysql.h>
 #include <string>
@@ -25,3 +28,5 @@ private:
     std::string dbname;
     unsigned int port;
 };
+
+#endif

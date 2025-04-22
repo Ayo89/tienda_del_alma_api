@@ -1,22 +1,24 @@
 {
-    "configurations": [
-        {
-            "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/include/**",   // Rutas específicas de las carpetas importantes
-                "${workspaceFolder}/src/**",       // Incluir también el código fuente si es necesario
-                "/usr/include",
-                "/usr/local/include",
-                "/usr/include/c++",
-                "/usr/include/mysql"              // Verificar que esta ruta sea correcta en tu sistema
-            ],
-            "defines": [],
-            "compilerPath": "/usr/bin/g++",
-            "cStandard": "c11",
-            "cppStandard": "c++20",
-            "intelliSenseMode": "linux-gcc-x64",
-            "configurationProvider": "ms-vscode.cmake-tools"
-        }
-    ],
-    "version": 4
+  "configurations": [
+    {
+      "name": "Linux",
+      "compilerPath": "/usr/bin/g++",
+      "cStandard": "c11",
+      "cppStandard": "c++20",
+      "intelliSenseMode": "linux-gcc-x64",
+
+      // ✨ Usa compile_commands.json generado por CMake
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+
+      // Opcional: rutas adicionales si necesitas
+      "includePath": [
+        "${workspaceFolder}/include/**",
+        "${workspaceFolder}/src/**"
+      ],
+
+      // Deja que CMake Tools inyecte defines, flags y demás
+      "configurationProvider": "ms-vscode.cmake-tools"
+    }
+  ],
+  "version": 4
 }

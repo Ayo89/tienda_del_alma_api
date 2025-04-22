@@ -1,6 +1,6 @@
 #ifndef ADDRESSCONTROLLER_H
 #define ADDRESSCONTROLLER_H
-#include <cpprest/http_msg.h>
+
 #include <cpprest/http_msg.h>
 #include <cpprest/json.h>
 #include <optional>
@@ -9,6 +9,7 @@
 #include "entities/Address.h"
 #include "model/AddressModel.h"
 #include "AuthUtils.h"
+#include "services/jwt/JwtService.h"
 
 class AddressController
 {

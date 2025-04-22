@@ -6,13 +6,13 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
 {
     web::http::http_response response;
 
-    // 1. Obtener user_id desde token
+    // 1. Obtain user_id from JWT token
     auto optUserId = AuthUtils::getUserIdFromRequest(request);
 
     if (!optUserId)
     {
         response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token no proporcionado o inválido"));
+        response.set_body(U("Unauthorized"));
         return response;
     }
     int user_id;
@@ -23,11 +23,11 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     catch (const std::exception &)
     {
         response.set_status_code(web::http::status_codes::BadRequest);
-        response.set_body(U("User ID inválido en el token"));
+        response.set_body(U("Invalid user_id"));
         return response;
     }
 
-    // 2. Extraer y validar JSON del cuerpo
+    // 2. Obtain JSON body
     web::json::value body;
     try
     {
@@ -36,18 +36,18 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     catch (const std::exception &)
     {
         response.set_status_code(web::http::status_codes::BadRequest);
-        response.set_body(U("Cuerpo JSON inválido"));
+        response.set_body(U("Invalid JSON body"));
         return response;
     }
 
-    // 3. Validar campos obligatorios
+    // 3. Validate required fields
     if (!body.has_field(U("shipping_address_id")) ||
         !body.has_field(U("billing_address_id")) ||
         !body.has_field(U("total")) ||
         !body.has_field(U("products")))
     {
         response.set_status_code(web::http::status_codes::BadRequest);
-        response.set_body(U("Faltan campos requeridos: shipping_address_id, billing_address_id, total o products"));
+        response.set_body(U("Missing required fields: shipping_address_id, billing_address_id, total o products"));
         return response;
     }
 
@@ -56,7 +56,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     std::string status = body.has_field(U("status")) ? body[U("status")].as_string() : "pending";
     double total = body[U("total")].as_double();
 
-    // 4. Parsear array de productos
+    // 4. Parse products
     std::vector<OrderProduct> products;
     try
     {
@@ -77,7 +77,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
         return response;
     }
 
-    // 5. Campos opcionales
+    // 5. Optional fields
     auto getOpt = [&](const utility::string_t &key)
     {
         return body.has_field(key) ? body[key].as_string() : U("");
@@ -90,7 +90,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     std::string payment_method = getOpt(U("payment_method"));
     std::string payment_status = getOpt(U("payment_status"));
 
-    // 6. Llamar al modelo para crear orden
+    // 6. Call the model to create the order
     OrderModel model;
     auto optOrderId = model.createOrder(
         user_id,
@@ -110,14 +110,17 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     if (!optOrderId)
     {
         response.set_status_code(web::http::status_codes::InternalError);
-        response.set_body(U("Error al crear la orden"));
+        response.set_body(U("Failure creating order"));
         return response;
     }
 
-    // 7. Responder con JSON
+    // 7. Answer with the order ID
+    // 7.1. Set the response body
+    // 7.2. Set the status code
+    // 7.3. Set the content type
     web::json::value respBody;
     respBody[U("order_id")] = web::json::value::number(optOrderId.value());
-    respBody[U("message")] = web::json::value::string(U("Orden creada exitosamente"));
+    respBody[U("message")] = web::json::value::string(U("Order created successfully"));
 
     response.set_status_code(web::http::status_codes::Created);
     response.headers().add(U("Content-Type"), U("application/json"));

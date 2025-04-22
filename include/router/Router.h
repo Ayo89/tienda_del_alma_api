@@ -2,8 +2,8 @@
 #define ROUTER_H
 
 #include <cpprest/http_listener.h>
-#include "controllers/AuthController.h"
 #include "db/DatabaseConnection.h"
+#include "controllers/AuthController.h"
 #include "controllers/ProductController.h"
 #include "controllers/UserController.h"
 #include "controllers/AddressController.h"

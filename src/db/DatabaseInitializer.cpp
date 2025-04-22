@@ -7,14 +7,14 @@ bool DatabaseInitializer::executeQuery(const std::string &query)
     MYSQL *conn = db.getConnection();
     if (!conn)
     {
-        std::cerr << "Conexión no establecida." << std::endl;
+        std::cerr << "Failed to get database connection" << std::endl;
         return false;
     }
 
     // Ejecuta la consulta SQL. Si ocurre algún error, mysql_query retornará un valor distinto de 0.
     if (mysql_query(conn, query.c_str()))
     {
-        std::cerr << "Error ejecutando consulta: " << mysql_error(conn) << std::endl;
+        std::cerr << "Failed to execute query: " << mysql_error(conn) << std::endl;
         return false;
     }
 
@@ -28,7 +28,7 @@ bool DatabaseInitializer::initialize(bool forceInit)
     MYSQL *conn = db.getConnection();
     if (!conn)
     {
-        std::cerr << "Conexión no establecida." << std::endl;
+        std::cerr << "Failed to get database connection" << std::endl;
         return false;
     }
 
@@ -200,6 +200,6 @@ bool DatabaseInitializer::initialize(bool forceInit)
     if (!executeQuery(query))
         return false;
 
-    std::cout << "Base de datos inicializada correctamente con los cambios solicitados." << std::endl;
+    std::cout << "Database initialized successfully with the requested changes." << std::endl;
     return true;
 }

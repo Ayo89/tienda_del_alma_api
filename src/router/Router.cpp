@@ -1,3 +1,4 @@
+
 #include "router/Router.h"
 #include "server/Server.h"
 
@@ -45,18 +46,6 @@ void Router::setup_routes()
             ProductController model;
             response = model.getAllProducts();
         }
-/*         else if (method == web::http::methods::POST && path == U("/products"))
-        {
-            response = ProductController::addProduct(request, db_);
-        }
-        else if (method == web::http::methods::PUT && path == U("/products"))
-        {
-            response = ProductController::updateProduct(request, db_);
-        }
-        else if (method == web::http::methods::DELETE && path == U("/products"))
-        {
-            response = ProductController::deleteProduct(request, db_);
-        } */
 
         // SHIPPING ADDRESS
 
@@ -103,24 +92,3 @@ void Router::setup_routes()
         // Responder a la solicitud con los encabezados CORS ya añadidos
         request.reply(response); });
 }
-
-/*
-    // Manejar solicitudes OPTIONS (preflight)
-    listener_.support(web::http::methods::OPTIONS, [this](const web::http::http_request &request)
-                      {
-        web::http::http_response response(web::http::status_codes::OK);
-        Server::add_cors_headers(response); // Añadir encabezados CORS
-        request.reply(response); });
-
-    listener_.support(web::http::methods::POST, [this](const web::http::http_request &request)
-                      {
-        if (request.relative_uri().path() == U("/signup")) {
-            web::http::http_response response = AuthController::signup(request, db_);
-            Server::add_cors_headers(response); // Añades los encabezados CORS
-            request.reply(response);
-        } else {
-            web::http::http_response not_found(web::http::status_codes::NotFound);
-            not_found.set_body(U("Ruta no encontrada"));
-            Server::add_cors_headers(not_found); // Añades los encabezados CORS
-            request.reply(not_found);
-        } }); */
