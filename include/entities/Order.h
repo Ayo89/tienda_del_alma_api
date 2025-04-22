@@ -11,7 +11,7 @@ struct Order
     int billing_address_id;
     std::string order_date;
     std::string status;
-    std::string total;
+    double total;
     std::string shipment_date;
     std::string delivery_date;
     std::string carrier;

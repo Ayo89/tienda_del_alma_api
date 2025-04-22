@@ -127,3 +127,56 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     response.set_body(respBody);
     return response;
 }
+
+web::http::http_response OrderController::getOrdersByUserId(const web::http::http_request &request)
+{
+    web::http::http_response response;
+    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
+    if (!optUserId.has_value())
+    {
+        response.set_status_code(web::http::status_codes::Unauthorized);
+        response.set_body(U("Token no proporcionado o inválido"));
+        return response;
+    }
+    int user_id = std::stoi(optUserId.value());
+    OrderModel model;
+    auto optOrders = model.getOrdersByUserId(user_id);
+    if (!optOrders.has_value())
+    {
+        response.set_status_code(web::http::status_codes::NotFound);
+        response.set_body(U("No orders found for the user"));
+        return response;
+    }
+    response.set_status_code(web::http::status_codes::OK);
+
+    if (optOrders.has_value() && !optOrders->empty())
+    {
+        web::json::value json_response = web::json::value::array();
+        for (size_t i = 0; i < optOrders->size(); ++i)
+        {
+            const auto &order = optOrders->at(i);
+            web::json::value json_orders;
+            json_orders[U("order_id")] = web::json::value::number(order.id);
+            json_orders[U("shipping_address_id")] = web::json::value::number(order.shipping_address_id);
+            json_orders[U("billing_address_id")] = web::json::value::number(order.billing_address_id);
+            json_orders[U("status")] = web::json::value::string(order.status);
+            json_orders[U("total")] = web::json::value::number(order.total);
+            json_orders[U("shipment_date")] = web::json::value::string(order.shipment_date);
+            json_orders[U("delivery_date")] = web::json::value::string(order.delivery_date);
+            json_orders[U("carrier")] = web::json::value::string(order.carrier);
+            json_orders[U("tracking_url")] = web::json::value::string(order.tracking_url);
+            json_orders[U("tracking_number")] = web::json::value::string(order.tracking_number);
+            json_orders[U("payment_method")] = web::json::value::string(order.payment_method);
+            json_orders[U("payment_status")] = web::json::value::string(order.payment_status);
+            json_response[i] = json_orders;
+        }
+        response.set_body(json_response);
+    }
+    else
+    {
+        web::json::value empty_msg = web::json::value::object();
+        empty_msg[U("message")] = web::json::value::string(U("Not found orders for this user"));
+        response.set_body(empty_msg);
+    }
+    return response;
+}

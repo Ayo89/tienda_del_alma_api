@@ -250,8 +250,9 @@ std::optional<std::vector<Order>> OrderModel::getOrdersByUserId(int &user_id)
     }
 
     // Buffers para cada columna
-    int id, shipping_address_id, billing_address_id;
-    char order_date[64], status[32], total_str[32];
+    int id, user_id_buffer, shipping_address_id, billing_address_id;
+    double total;
+    char order_date[64], status[32];
     char ship_date[64], delivery_date[64], carrier[64];
     char tracking_url[128], tracking_num[64];
     char pay_method[32], pay_status[32];
@@ -271,8 +272,8 @@ std::optional<std::vector<Order>> OrderModel::getOrdersByUserId(int &user_id)
 
     // Columna 1 → user_id
     result_bind[1].buffer_type = MYSQL_TYPE_LONG;
-    result_bind[1].buffer = &user_id;
-    result_bind[1].buffer_length = sizeof(user_id);
+    result_bind[1].buffer = &user_id_buffer;
+    result_bind[1].buffer_length = sizeof(user_id_buffer);
     result_bind[1].is_null = &is_null[1];
     result_bind[1].length = &length[1];
 
@@ -305,9 +306,9 @@ std::optional<std::vector<Order>> OrderModel::getOrdersByUserId(int &user_id)
     result_bind[5].length = &length[5];
 
     // Columna 6 → total
-    result_bind[6].buffer_type = MYSQL_TYPE_STRING;
-    result_bind[6].buffer = total_str;
-    result_bind[6].buffer_length = sizeof(total_str);
+    result_bind[6].buffer_type = MYSQL_TYPE_LONG;
+    result_bind[6].buffer = &total;
+    result_bind[6].buffer_length = sizeof(total);
     result_bind[6].is_null = &is_null[6];
     result_bind[6].length = &length[6];
 
@@ -329,7 +330,7 @@ std::optional<std::vector<Order>> OrderModel::getOrdersByUserId(int &user_id)
     result_bind[9].buffer_type = MYSQL_TYPE_STRING;
     result_bind[9].buffer = carrier;
     result_bind[9].buffer_length = sizeof(carrier);
-    result_bind[9].is_null = &is_null[9];    
+    result_bind[9].is_null = &is_null[9];
     result_bind[9].length = &length[9];
 
     // Columna 10 → tracking_url
@@ -359,8 +360,6 @@ std::optional<std::vector<Order>> OrderModel::getOrdersByUserId(int &user_id)
     result_bind[13].buffer_length = sizeof(pay_status);
     result_bind[13].is_null = &is_null[13];
     result_bind[13].length = &length[13];
-    
-
 
     if (mysql_stmt_bind_result(stmt, result_bind) != 0)
     {
@@ -378,7 +377,7 @@ std::optional<std::vector<Order>> OrderModel::getOrdersByUserId(int &user_id)
         ord.billing_address_id = billing_address_id;
         ord.order_date = order_date;
         ord.status = status;
-        ord.total = std::stod(total_str);
+        ord.total = total;
         ord.shipment_date = ship_date;
         ord.delivery_date = delivery_date;
         ord.carrier = carrier;

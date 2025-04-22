@@ -3,6 +3,8 @@
 #include "server/Server.h"
 
 AuthController authController;
+AddressController addressController;
+OrderController orderController;
 
 Router::Router(web::http::experimental::listener::http_listener &listener)
     : listener_(listener) {}
@@ -51,22 +53,22 @@ void Router::setup_routes()
 
       if(method == web::http::methods::GET && path == U("/address"))
         {
-            AddressController addressController;
+            
             response = addressController.getAddressesByUserId(request);
         } 
         else if (method == web::http::methods::GET && path.find(U("/address/")) != std::string::npos)
         {
-            AddressController addressController;
+            
             response = addressController.getAddressById(request);
         }
         else if (method == web::http::methods::POST && path == U("/address"))
         {
-            AddressController addressController;
+            
             response = addressController.createAddress(request);
         }
         else if(method == web::http::methods::PUT && path.find(U("/address")) != std::string::npos)
         {
-            AddressController addressController;
+            
             response = addressController.updateAddress(request);
         }
 
@@ -74,8 +76,13 @@ void Router::setup_routes()
 
         if (method == web::http::methods::POST && path == U("/order"))
         {
-            OrderController orderController;
+            
             response = orderController.createOrder(request);
+
+        } else if (method == web::http::methods::GET && path == U("/order"))
+        {
+
+            response = orderController.getOrdersByUserId(request);
         }
 
         // 🔹 Añadir encabezados CORS
