@@ -1,4 +1,5 @@
 #include "controllers/OrderController.h"
+#include "model/OrderModel.h" // Asegúrate de incluir el modelo
 
 OrderController::OrderController() {}
 
@@ -47,7 +48,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
         !body.has_field(U("products")))
     {
         response.set_status_code(web::http::status_codes::BadRequest);
-        response.set_body(U("Missing required fields: shipping_address_id, billing_address_id, total o products"));
+        response.set_body(U("Missing required fields: shipping_address_id, billing_address_id, total, products"));
         return response;
     }
 
@@ -90,42 +91,80 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     std::string payment_method = getOpt(U("payment_method"));
     std::string payment_status = getOpt(U("payment_status"));
 
-    // 6. Call the model to create the order
+    // 6. Call the model to create or update the order
     OrderModel model;
-    auto optOrderId = model.createOrder(
-        user_id,
-        shipping_address_id,
-        billing_address_id,
-        status,
-        total,
-        products,
-        shipment_date,
-        delivery_date,
-        carrier,
-        tracking_url,
-        tracking_number,
-        payment_method,
-        payment_status);
-
-    if (!optOrderId)
+    std::optional<Order> optOrder = model.getPendingOrderByUserId(user_id); // Cambiado a Order
+    std::cout << "optOrder: " << optOrder.has_value()  << std::endl;
+    if (optOrder.has_value())
     {
-        response.set_status_code(web::http::status_codes::InternalError);
-        response.set_body(U("Failure creating order"));
+        // Order exists, update it
+        Order &existingOrder = optOrder.value(); // Obtener la orden existente
+        std::cout << existingOrder.id << std::endl;
+        std::optional<Order> updatedOrder = model.updateOrder( // Cambiado a Order
+            user_id,
+            existingOrder.id,
+            shipping_address_id,
+            billing_address_id,
+            status,
+            total,
+            products,
+            shipment_date,
+            delivery_date,
+            carrier,
+            tracking_url,
+            tracking_number,
+            payment_method,
+            payment_status);
+
+        if (!updatedOrder)
+        {
+            response.set_status_code(web::http::status_codes::InternalError);
+            response.set_body(U("Unable to update existing pending order"));
+            return response;
+        }
+
+        response.set_status_code(web::http::status_codes::OK);
+        web::json::value respBody;
+        respBody[U("order_id")] = web::json::value::number(updatedOrder.value().id); // Usar el ID de la orden actualizada
+        respBody[U("message")] = web::json::value::string(U("Order updated successfully"));
+        response.headers().add(U("Content-Type"), U("application/json"));
+        response.set_body(respBody);
         return response;
     }
+    else
+    {
+        // Order does not exist, create it
+        std::optional<int> optOrderId = model.createOrder(
+            user_id,
+            shipping_address_id,
+            billing_address_id,
+            status,
+            total,
+            products,
+            shipment_date,
+            delivery_date,
+            carrier,
+            tracking_url,
+            tracking_number,
+            payment_method,
+            payment_status);
 
-    // 7. Answer with the order ID
-    // 7.1. Set the response body
-    // 7.2. Set the status code
-    // 7.3. Set the content type
-    web::json::value respBody;
-    respBody[U("order_id")] = web::json::value::number(optOrderId.value());
-    respBody[U("message")] = web::json::value::string(U("Order created successfully"));
+        if (!optOrderId)
+        {
+            response.set_status_code(web::http::status_codes::InternalError);
+            response.set_body(U("Failure creating order"));
+            return response;
+        }
 
-    response.set_status_code(web::http::status_codes::Created);
-    response.headers().add(U("Content-Type"), U("application/json"));
-    response.set_body(respBody);
-    return response;
+        web::json::value respBody;
+        respBody[U("order_id")] = web::json::value::number(optOrderId.value());
+        respBody[U("message")] = web::json::value::string(U("Order created successfully"));
+
+        response.set_status_code(web::http::status_codes::Created);
+        response.headers().add(U("Content-Type"), U("application/json"));
+        response.set_body(respBody);
+        return response;
+    }
 }
 
 web::http::http_response OrderController::getOrdersByUserId(const web::http::http_request &request)

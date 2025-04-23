@@ -33,6 +33,22 @@ public:
         const std::string &payment_method,
         const std::string &payment_status);
     std::optional<std::vector<Order>> getOrdersByUserId(int &user_id);
+    std::optional<Order> getPendingOrderByUserId(int &user_id);
+    std::optional<Order> updateOrder(
+        const int &user_id,
+        const int &order_id,
+        const int &shipping_address_id,
+        const int &billing_address_id,
+        const std::string &status,
+        const double &total,
+        const std::vector<OrderProduct> &products,
+        const std::string &shipment_date,
+        const std::string &delivery_date,
+        const std::string &carrier,
+        const std::string &tracking_url,
+        const std::string &tracking_number,
+        const std::string &payment_method,
+        const std::string &payment_status);
 };
 
 #endif
