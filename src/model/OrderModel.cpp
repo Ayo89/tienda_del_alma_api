@@ -658,7 +658,7 @@ std::optional<Order> OrderModel::updateOrder(
         int user_id_result;
         bool is_null_result[1];
         unsigned long lenght_result[1];
-        
+
         checkResultBind[0].buffer_type = MYSQL_TYPE_LONG;
         checkResultBind[0].buffer = &user_id_result;
         checkResultBind[0].buffer_length = sizeof(user_id_result);
@@ -792,7 +792,9 @@ std::optional<Order> OrderModel::updateOrder(
             std::cerr << "Statement execution failed (update query): " << mysql_stmt_error(stmt) << std::endl;
             throw std::runtime_error("Statement execution failed (update query)");
         }
-        std::cout << shipping_address_id << std::endl;
+        std::cout << "shipping Address id model " << shipping_address_id << std::endl;
+        std::cout << "order id model " << order_id << std::endl;
+
         // Check if any rows were affected by the update
         if (mysql_stmt_affected_rows(stmt) == 0)
         {

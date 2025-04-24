@@ -45,6 +45,11 @@ public:
         const bool &is_default = false,
         const std::string &type = "",
         const std::string &additional_info = "");
+
+    std::optional<int> deleteAddress(
+        const int &user_id,
+        const int &address_id,
+        const std::string &type);
 };
 
 #endif

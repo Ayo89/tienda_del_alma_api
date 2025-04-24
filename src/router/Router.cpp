@@ -71,6 +71,11 @@ void Router::setup_routes()
             
             response = addressController.updateAddress(request);
         }
+        else if(method == web::http::methods::DEL && path.find(U("/address/")) != std::string::npos)
+        {
+            
+            response = addressController.deleteAddress(request);
+        }
 
         // ORDERS
 

@@ -249,3 +249,80 @@ web::http::http_response AddressController::updateAddress(const web::http::http_
         return response;
     }
 }
+
+// delete
+web::http::http_response AddressController::deleteAddress(const web::http::http_request &request)
+{
+    web::http::http_response response;
+
+    // 1. Obtainer user_id from token (from cookies)
+    std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
+    if (!user_id.has_value())
+    {
+        response.set_status_code(web::http::status_codes::Unauthorized);
+        response.set_body(U("Invalid Token or Expired"));
+        return response;
+    }
+    // 2. Obtainer address_id from URL
+    auto path = request.request_uri().path();
+    auto address_id_str = path.substr(path.find_last_of('/') + 1);
+    int address_id = std::stoi(address_id_str);
+    int user_id_int = std::stoi(user_id.value());
+    auto query = web::uri::split_query(request.request_uri().query());
+    std::string type = "shipping"; // valor por defecto
+
+    auto it = query.find("type");
+    if (it != query.end())
+    {
+        type = it->second;
+    }
+    AddressModel AddressModel;
+    auto allAddressesOpt = AddressModel.getAllAddressByUserId(user_id_int);
+
+    if (!allAddressesOpt.has_value())
+    {
+
+        response.set_status_code(web::http::status_codes::InternalError);
+        response.set_body(U("Failed to retrieve addresses"));
+        return response;
+    }
+
+    std::vector<Address> addresses = allAddressesOpt.value();
+
+    int billingCount = 0;
+    int shippingCount = 0;
+
+    for (const auto &addr : addresses)
+    {
+        if (addr.type == "billing")
+        {
+            billingCount++;
+        }
+        else if (addr.type == "shipping")
+        {
+            shippingCount++;
+        }
+    }
+    // 3. Check if the address is the last one of its type
+    if (billingCount <= 1 && type == "billing" || shippingCount <= 1 && type == "shipping")
+    {
+        response.set_status_code(web::http::status_codes::InternalError);
+        response.set_body(U("❌ You Can't Delete The Last Address"));
+        return response;
+    }
+    // 4. Execute deleteAddress method
+    auto result = model.deleteAddress(user_id_int, address_id, type);
+
+    // 5. Verify if the address was deleted successfully
+    if (!result.has_value())
+    {
+        response.set_status_code(web::http::status_codes::InternalError);
+        response.set_body(U("Failed to delete address"));
+        return response;
+    }
+
+    // 6. Responder con éxito
+    response.set_status_code(web::http::status_codes::OK);
+    response.set_body(U("Address deleted successfully"));
+    return response;
+}

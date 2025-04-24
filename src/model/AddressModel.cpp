@@ -745,3 +745,91 @@ std::optional<Address> AddressModel::getAddressById(const int &address_id, const
 
     return address;
 }
+//---------------->>DELETE ADDRESS BY ID AND USER ID<<------------------//
+
+std::optional<int> AddressModel::deleteAddress(const int &user_id, const int &address_id, const std::string &type)
+{
+    // Obtener la conexión a la base de datos
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn || mysql_ping(conn) != 0)
+    {
+        std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
+        return std::nullopt;
+    }
+
+    const char *query = nullptr;
+
+
+    if (type == "billing")
+    {
+        query =
+            "DELETE FROM billing_addresses WHERE id = ? AND user_id = ?";
+    }
+    else
+    {
+        query =
+            "DELETE FROM shipping_addresses WHERE id = ? AND user_id = ?";
+    }
+    // Inicializar la sentencia
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    if (!stmt)
+    {
+        std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
+        return std::nullopt;
+    }
+    // Utilizamos RAII para garantizar que se cierre el statement
+    auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+
+    // Preparar la sentencia SQL
+    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    {
+        std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    // Declarar el arreglo para los parámetros. La cantidad total de parámetros en la consulta es 2
+    constexpr size_t NUM_PARAMS = 2;
+    MYSQL_BIND param[NUM_PARAMS];
+    memset(param, 0, sizeof(param));
+
+    // Definir los parámetros en el mismo orden en el que aparecen en la consulta
+
+    // 1. address_id
+    param[0].buffer_type = MYSQL_TYPE_LONG;
+    param[0].buffer = (void *)&address_id;
+    param[0].buffer_length = sizeof(address_id);
+
+    // 2. user_id
+    param[1].buffer_type = MYSQL_TYPE_LONG;
+    param[1].buffer = (void *)&user_id;
+    param[1].buffer_length = sizeof(user_id);
+
+    // Enlazar los parámetros a la sentencia
+    if (mysql_stmt_bind_param(stmt, param) != 0)
+    {
+        std::cerr << "Parameter binding failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    // Ejecutar la sentencia
+    if (mysql_stmt_execute(stmt) != 0)
+    {
+        std::cerr << "Statement execution failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+    // Obtener la cantidad de filas afectadas. Por lo general, para un DELETE exitoso, debe ser al menos 1.
+    my_ulonglong affected = mysql_stmt_affected_rows(stmt);
+    if (affected == 0)
+    {
+        std::cerr << "⚠️ Not affected rows for address_id: " << address_id << " and user_id: " << user_id << "" << std::endl;
+        return std::nullopt;
+    }
+    else
+    {
+        std::cout << "✅ Address deleted with address_id: " << address_id << " and user_id: " << user_id << "Affected rows: " << affected << std::endl;
+    }
+
+    // En caso de éxito, retornamos la cantidad de filas eliminadas (usualmente 1).
+    return static_cast<int>(affected);
+} //---------------->>END DELETE ADDRESS<<------------------//
