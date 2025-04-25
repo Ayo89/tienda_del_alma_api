@@ -9,8 +9,8 @@
 #include <vector>
 #include "entities/Order.h"
 #include "entities/OrderProduct.h"
+#include "model/OrderItemModel.h"
 #include "db/DatabaseConnection.h"
-#include "db/DatabaseInitializer.h"
 
 class OrderModel
 {
@@ -32,8 +32,11 @@ public:
         const std::string &tracking_number,
         const std::string &payment_method,
         const std::string &payment_status);
+        
     std::optional<std::vector<Order>> getOrdersByUserId(int &user_id);
+
     std::optional<Order> getPendingOrderByUserId(int &user_id);
+    
     std::optional<Order> updateOrder(
         const int &user_id,
         const int &order_id,

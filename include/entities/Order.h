@@ -19,7 +19,7 @@ struct Order
     std::string tracking_number;
     std::string payment_method;
     std::string payment_status;
-
+    std::string observations;
 };
 
 #endif

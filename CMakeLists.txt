@@ -45,6 +45,7 @@ add_executable(tienda_del_alma
   src/model/ProductModel.cpp
   src/model/AddressModel.cpp
   src/model/OrderModel.cpp
+  src/model/OrderItemModel.cpp
 )
 
 # 6️⃣ Rutas de inclusión PER-TARGET (mejor que include_directories)

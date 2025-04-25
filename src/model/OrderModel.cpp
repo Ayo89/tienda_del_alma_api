@@ -1,7 +1,5 @@
 #include "model/OrderModel.h"
-#include "db/DatabaseConnection.h"
-#include <iostream>
-#include <mysql/mysql.h>
+
 
 OrderModel::OrderModel() = default;
 
@@ -167,21 +165,11 @@ std::optional<int> OrderModel::createOrder(
         return std::nullopt;
     }
 
-    // Insert order items
-    for (const auto &item : products)
+    OrderItemModel orderItem;
+    if (!orderItem.createOrderItem(products, order_id))
     {
-        std::string insertItem =
-            "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (" +
-            std::to_string(order_id) + ", " +
-            std::to_string(item.product_id) + ", " +
-            std::to_string(item.quantity) + ", " +
-            std::to_string(item.price) + ");";
-        if (mysql_query(conn, insertItem.c_str()) != 0)
-        {
-            std::cerr << "Error inserting order_item: " << mysql_error(conn) << std::endl;
-            mysql_query(conn, "ROLLBACK");
-            return std::nullopt;
-        }
+        mysql_query(conn, "ROLLBACK");
+        return std::nullopt;
     }
 
     // Commit the transaction

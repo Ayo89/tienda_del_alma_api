@@ -179,6 +179,7 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "tracking_url VARCHAR(255), "
             "payment_method VARCHAR(50), "
             "payment_status VARCHAR(50), "
+            "observations TEXT, "
             "order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
             "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, "
             "FOREIGN KEY (billing_address_id) REFERENCES billing_addresses(id) ON DELETE CASCADE, "
