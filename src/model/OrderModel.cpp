@@ -1,6 +1,5 @@
 #include "model/OrderModel.h"
 
-
 OrderModel::OrderModel() = default;
 
 std::optional<int> OrderModel::createOrder(
@@ -9,7 +8,7 @@ std::optional<int> OrderModel::createOrder(
     const int &billing_address_id,
     const std::string &status,
     const double &total,
-    const std::vector<OrderProduct> &products,
+    const std::vector<OrderItem> &products,
     const std::string &shipment_date,
     const std::string &delivery_date,
     const std::string &carrier,
@@ -577,7 +576,6 @@ std::optional<Order> OrderModel::updateOrder(
     const int &billing_address_id,
     const std::string &status,
     const double &total,
-    const std::vector<OrderProduct> &products,
     const std::string &shipment_date,
     const std::string &delivery_date,
     const std::string &carrier,
@@ -613,12 +611,15 @@ std::optional<Order> OrderModel::updateOrder(
         if (!checkStmt)
         {
             std::cerr << "Statement initialization failed (check query): " << mysql_error(conn) << std::endl;
+            mysql_query(conn, "ROLLBACK");
             throw std::runtime_error("Statement initialization failed (check query)");
         }
         auto checkStmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(checkStmt, mysql_stmt_close);
         if (mysql_stmt_prepare(checkStmt, checkQuery, strlen(checkQuery)) != 0)
         {
             std::cerr << "Statement preparation failed (check query): " << mysql_stmt_error(checkStmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("Statement preparation failed (check query)");
         }
         // Bind the order ID parameter for the check query
@@ -630,6 +631,8 @@ std::optional<Order> OrderModel::updateOrder(
         if (mysql_stmt_bind_param(checkStmt, checkParam) != 0)
         {
             std::cerr << "Parameter binding failed (check query): " << mysql_stmt_error(checkStmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("Parameter binding failed (check query)");
         }
 
@@ -637,6 +640,8 @@ std::optional<Order> OrderModel::updateOrder(
         if (mysql_stmt_execute(checkStmt) != 0)
         {
             std::cerr << "Statement execution failed (check query): " << mysql_stmt_error(checkStmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("Statement execution failed (check query)");
         }
 
@@ -657,6 +662,8 @@ std::optional<Order> OrderModel::updateOrder(
         if (mysql_stmt_bind_result(checkStmt, checkResultBind) != 0)
         {
             std::cerr << "Bind result failed (check query): " << mysql_stmt_error(checkStmt) << "\n";
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("Bind result failed (check query)");
         }
         // Fetch the result of the check query
@@ -664,17 +671,23 @@ std::optional<Order> OrderModel::updateOrder(
         if (fetch_result == MYSQL_NO_DATA)
         {
             std::cerr << "No data found for order_id: " << order_id << "\n";
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("No data found for order_id");
         }
         else if (fetch_result != 0)
         {
             std::cerr << "Fetch failed (check query): " << mysql_stmt_error(checkStmt) << "\n";
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("Fetch failed (check query)");
         }
         // Verify if the fetched user ID matches the provided user ID
         if (user_id_result != user_id)
         {
             std::cerr << "Error: User ID " << user_id << " does not match the order's user ID " << user_id_result << std::endl;
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("User ID does not match");
         }
 
@@ -691,6 +704,8 @@ std::optional<Order> OrderModel::updateOrder(
         if (!stmt)
         {
             std::cerr << "Statement initialization failed (update query): " << mysql_error(conn) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("Statement initialization failed (update query)");
         }
 
@@ -771,6 +786,8 @@ std::optional<Order> OrderModel::updateOrder(
         if (mysql_stmt_bind_param(stmt, param) != 0)
         {
             std::cerr << "Parameter binding failed (update query): " << mysql_stmt_error(stmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("Parameter binding failed (update query)");
         }
 
@@ -778,15 +795,17 @@ std::optional<Order> OrderModel::updateOrder(
         if (mysql_stmt_execute(stmt) != 0)
         {
             std::cerr << "Statement execution failed (update query): " << mysql_stmt_error(stmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("Statement execution failed (update query)");
         }
-        std::cout << "shipping Address id model " << shipping_address_id << std::endl;
-        std::cout << "order id model " << order_id << std::endl;
 
         // Check if any rows were affected by the update
         if (mysql_stmt_affected_rows(stmt) == 0)
         {
             std::cerr << "No rows updated for order_id: " << order_id << std::endl;
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("No rows updated");
         }
 
@@ -794,6 +813,8 @@ std::optional<Order> OrderModel::updateOrder(
         if (mysql_query(conn, "COMMIT") != 0)
         {
             std::cerr << "Commit failed: " << mysql_error(conn) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+
             throw std::runtime_error("Commit failed");
         }
 

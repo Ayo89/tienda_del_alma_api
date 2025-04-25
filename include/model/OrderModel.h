@@ -8,7 +8,7 @@
 #include <cstring>
 #include <vector>
 #include "entities/Order.h"
-#include "entities/OrderProduct.h"
+#include "entities/OrderItem.h"
 #include "model/OrderItemModel.h"
 #include "db/DatabaseConnection.h"
 
@@ -24,7 +24,7 @@ public:
         const int &billing_address_id,
         const std::string &status,
         const double &total,
-        const std::vector<OrderProduct> &products,
+        const std::vector<OrderItem> &products,
         const std::string &shipment_date,
         const std::string &delivery_date,
         const std::string &carrier,
@@ -44,7 +44,6 @@ public:
         const int &billing_address_id,
         const std::string &status,
         const double &total,
-        const std::vector<OrderProduct> &products,
         const std::string &shipment_date,
         const std::string &delivery_date,
         const std::string &carrier,

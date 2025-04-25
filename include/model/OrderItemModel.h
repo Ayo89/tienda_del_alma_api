@@ -4,11 +4,12 @@
 #include <string>
 #include <iostream>
 #include "db/DatabaseConnection.h"
-#include "entities/OrderProduct.h"
+#include "entities/OrderItem.h"
 #include <optional>
 #include <vector>
 #include <memory>
 #include <cstring>
+#include <set>
 
 class OrderItemModel
 {
@@ -21,7 +22,9 @@ private:
 
 public:
     OrderItemModel() {};
-    std::optional<int> createOrderItem(const std::vector<OrderProduct> &products, int order_id);
+    std::optional<int> createOrderItem(const std::vector<OrderItem> &products, int order_id);
+    std::optional<int> updateOrderItems(const std::vector<OrderItem> &products, int order_id);
+    std::optional<int> syncOrderItems(const std::vector<OrderItem> &newItems, int order_id);
 };
 
 #endif

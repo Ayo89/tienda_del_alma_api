@@ -1,9 +1,9 @@
-#ifndef ORDERPRODUCT_H
-#define ORDERPRODUCT_H
+#ifndef ORDERITEM_H
+#define ORDERITEM_H
 
 #include <string>
 
-struct OrderProduct
+struct OrderItem
 {
     int id;
     int order_id;

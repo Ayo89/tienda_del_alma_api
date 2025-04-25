@@ -1,5 +1,5 @@
 #include "controllers/OrderController.h"
-#include "model/OrderModel.h" // Asegúrate de incluir el modelo
+#include "model/OrderModel.h" // Make sure to include the model
 
 OrderController::OrderController() {}
 
@@ -10,6 +10,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     // 1. Obtain user_id from JWT token
     auto optUserId = AuthUtils::getUserIdFromRequest(request);
 
+    // If user_id is not available in the JWT token, return Unauthorized
     if (!optUserId)
     {
         response.set_status_code(web::http::status_codes::Unauthorized);
@@ -19,7 +20,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     int user_id;
     try
     {
-        user_id = std::stoi(optUserId.value());
+        user_id = std::stoi(optUserId.value()); // Convert user_id to integer
     }
     catch (const std::exception &)
     {
@@ -32,7 +33,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     web::json::value body;
     try
     {
-        body = request.extract_json().get();
+        body = request.extract_json().get(); // Extract and parse JSON body from the request
     }
     catch (const std::exception &)
     {
@@ -41,7 +42,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
         return response;
     }
 
-    // 3. Validate required fields
+    // 3. Validate required fields in the body
     if (!body.has_field(U("shipping_address_id")) ||
         !body.has_field(U("billing_address_id")) ||
         !body.has_field(U("total")) ||
@@ -54,17 +55,18 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
 
     int shipping_address_id = body[U("shipping_address_id")].as_integer();
     int billing_address_id = body[U("billing_address_id")].as_integer();
-    std::string status = body.has_field(U("status")) ? body[U("status")].as_string() : "pending";
+    std::string status = body.has_field(U("status")) ? body[U("status")].as_string() : "pending"; // Default status is "pending"
     double total = body[U("total")].as_double();
 
-    // 4. Parse products
-    std::vector<OrderProduct> products;
+    // 4. Parse products (items) from the JSON array
+    std::vector<OrderItem> products;
+
     try
     {
         auto arr = body[U("products")].as_array();
         for (const auto &item : arr)
         {
-            OrderProduct prod;
+            OrderItem prod;
             prod.product_id = item.at(U("id")).as_integer();
             prod.quantity = item.at(U("quantity")).as_integer();
             prod.price = item.at(U("price")).as_double();
@@ -78,10 +80,10 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
         return response;
     }
 
-    // 5. Optional fields
+    // 5. Optional fields (e.g., shipment date, delivery date, payment method, etc.)
     auto getOpt = [&](const utility::string_t &key)
     {
-        return body.has_field(key) ? body[key].as_string() : U("");
+        return body.has_field(key) ? body[key].as_string() : U(""); // Return empty string if the key is not found
     };
     std::string shipment_date = getOpt(U("shipment_date"));
     std::string delivery_date = getOpt(U("delivery_date"));
@@ -92,22 +94,20 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     std::string payment_status = getOpt(U("payment_status"));
 
     // 6. Call the model to create or update the order
-    OrderModel model;
-    std::optional<Order> optOrder = model.getPendingOrderByUserId(user_id); 
-    std::cout << "optOrder: " << optOrder.has_value()  << std::endl;
-    if (optOrder.has_value())
+    OrderModel orderModel;
+    OrderItemModel orderItemModel;
+    std::optional<Order> optOrder = model.getPendingOrderByUserId(user_id); // Check if there is an existing pending order for the user
+
+    if (optOrder.has_value()) // If the order exists, update it
     {
-        // Order exists, update it
-        Order &existingOrder = optOrder.value(); // Obtener la orden existente
-        std::cout << existingOrder.id << std::endl;
-        std::optional<Order> updatedOrder = model.updateOrder( // Cambiado a Order
+        Order &existingOrder = optOrder.value();
+        std::optional<Order> updatedOrder = orderModel.updateOrder(
             user_id,
             existingOrder.id,
             shipping_address_id,
             billing_address_id,
             status,
             total,
-            products,
             shipment_date,
             delivery_date,
             carrier,
@@ -115,7 +115,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
             tracking_number,
             payment_method,
             payment_status);
-
+        std::optional<int> optOrderItemId = orderItemModel.syncOrderItems(products, existingOrder.id); // Sync products with the order
         if (!updatedOrder)
         {
             response.set_status_code(web::http::status_codes::InternalError);
@@ -125,7 +125,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
 
         response.set_status_code(web::http::status_codes::OK);
         web::json::value respBody;
-        respBody[U("order_id")] = web::json::value::number(updatedOrder.value().id); // Usar el ID de la orden actualizada
+        respBody[U("order_id")] = web::json::value::number(updatedOrder.value().id); // Use the updated order's ID
         respBody[U("message")] = web::json::value::string(U("Order updated successfully"));
         response.headers().add(U("Content-Type"), U("application/json"));
         response.set_body(respBody);
@@ -133,7 +133,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     }
     else
     {
-        // Order does not exist, create it
+        // Order does not exist, create a new order
         std::optional<int> optOrderId = model.createOrder(
             user_id,
             shipping_address_id,
@@ -170,28 +170,31 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
 web::http::http_response OrderController::getOrdersByUserId(const web::http::http_request &request)
 {
     web::http::http_response response;
+
+    // 1. Obtain user_id from JWT token
     std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
-    if (!optUserId.has_value())
+    if (!optUserId.has_value()) // If token is not provided or is invalid
     {
         response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token no proporcionado o inválido"));
+        response.set_body(U("Token not provided or invalid"));
         return response;
     }
     int user_id = std::stoi(optUserId.value());
     OrderModel model;
-    auto optOrders = model.getOrdersByUserId(user_id);
-    if (!optOrders.has_value())
+    auto optOrders = model.getOrdersByUserId(user_id); // Get orders for the specified user
+    if (!optOrders.has_value())                        // If no orders are found
     {
         response.set_status_code(web::http::status_codes::NotFound);
         response.set_body(U("No orders found for the user"));
         return response;
     }
+
     response.set_status_code(web::http::status_codes::OK);
 
-    if (optOrders.has_value() && !optOrders->empty())
+    if (optOrders.has_value() && !optOrders->empty()) // If orders are found
     {
         web::json::value json_response = web::json::value::array();
-        for (size_t i = 0; i < optOrders->size(); ++i)
+        for (size_t i = 0; i < optOrders->size(); ++i) // Loop through each order
         {
             const auto &order = optOrders->at(i);
             web::json::value json_orders;
@@ -213,8 +216,9 @@ web::http::http_response OrderController::getOrdersByUserId(const web::http::htt
     }
     else
     {
+        // If no orders are found, return a message
         web::json::value empty_msg = web::json::value::object();
-        empty_msg[U("message")] = web::json::value::string(U("Not found orders for this user"));
+        empty_msg[U("message")] = web::json::value::string(U("No orders found for this user"));
         response.set_body(empty_msg);
     }
     return response;
