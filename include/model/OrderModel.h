@@ -37,6 +37,8 @@ public:
 
     std::optional<Order> getPendingOrderByUserId(int &user_id);
     
+    std::optional<Order> getOrderById(int &order_id, int &user_id);
+
     std::optional<Order> updateOrder(
         const int &user_id,
         const int &order_id,
@@ -51,6 +53,7 @@ public:
         const std::string &tracking_number,
         const std::string &payment_method,
         const std::string &payment_status);
+        
 };
 
 #endif

@@ -84,10 +84,14 @@ void Router::setup_routes()
             
             response = orderController.createOrder(request);
 
-        } else if (method == web::http::methods::GET && path == U("/order"))
+        } 
+        else if (method == web::http::methods::GET && path == U("/order"))
         {
-
             response = orderController.getOrdersByUserId(request);
+        } 
+        else if(method == web::http::methods::GET && path.find(U("/order/")) != std::string::npos)
+        {
+            response = orderController.getOrderById(request);
         }
 
         // 🔹 Añadir encabezados CORS

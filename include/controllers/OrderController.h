@@ -20,6 +20,7 @@ public:
     OrderController();
     web::http::http_response createOrder(const web::http::http_request &request);
     web::http::http_response getOrdersByUserId(const web::http::http_request &request);
+    web::http::http_response getOrderById(const web::http::http_request &request);
 };
 
 #endif

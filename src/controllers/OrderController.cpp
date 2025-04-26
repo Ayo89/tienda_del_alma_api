@@ -223,3 +223,60 @@ web::http::http_response OrderController::getOrdersByUserId(const web::http::htt
     }
     return response;
 }
+
+web::http::http_response OrderController::getOrderById(const web::http::http_request &request)
+{
+    web::http::http_response response;
+
+    // 1. Obtain user_id from JWT token
+    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
+    if (!optUserId.has_value()) // If token is not provided or is invalid
+    {
+        response.set_status_code(web::http::status_codes::Unauthorized);
+        response.set_body(U("Token not provided or invalid"));
+        return response;
+    }
+    int user_id = std::stoi(optUserId.value());
+
+    // 2. Get order_id from the request URI
+    auto uri = request.request_uri();
+    auto path = uri.path();
+    if (path.empty() || path.find_last_of('/') == std::string::npos)
+    {
+        response.set_status_code(web::http::status_codes::BadRequest);
+        response.set_body(U("Invalid request URI"));
+        return response;
+    }
+    // Extract the order_id from the URI
+    // Assuming the URI is like /orders/{order_id}
+    auto address_id_str = path.substr(path.find_last_of('/') + 1);
+    int order_id = std::stoi(address_id_str);
+
+    // 3. Call the model to get the order by ID
+    OrderModel model;
+    auto optOrder = model.getOrderById(user_id, order_id); // Get the order for the specified user and order ID
+    if (!optOrder.has_value())                             // If no order is found
+    {
+        response.set_status_code(web::http::status_codes::NotFound);
+        response.set_body(U("Order not found"));
+        return response;
+    }
+
+    // 4. Prepare the JSON response
+    const auto &order = optOrder.value();
+    web::json::value json_order;
+    json_order[U("order_id")] = web::json::value::number(order.id);
+    json_order[U("shipping_address_id")] = web::json::value::number(order.shipping_address_id);
+    json_order[U("billing_address_id")] = web::json::value::number(order.billing_address_id);
+    json_order[U("status")] = web::json::value::string(order.status);
+    json_order[U("total")] = web::json::value::number(order.total);
+    json_order[U("shipment_date")] = web::json::value::string(order.shipment_date);
+    json_order[U("delivery_date")] = web::json::value::string(order.delivery_date);
+    json_order[U("carrier")] = web::json::value::string(order.carrier);
+    json_order[U("tracking_url")] = web::json::value::string(order.tracking_url);
+    json_order[U("tracking_number")] = web::json::value::string(order.tracking_number);
+    json_order[U("payment_method")] = web::json::value::string(order.payment_method);
+    json_order[U("payment_status")] = web::json::value::string(order.payment_status);
+    response.set_body(json_order);
+    return response;
+}

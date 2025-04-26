@@ -36,7 +36,7 @@ std::optional<int> OrderModel::createOrder(
     // Start transaction
     if (mysql_query(conn, "START TRANSACTION") != 0)
     {
-        std::cerr << "Error starting transaction: " << mysql_error(conn) << std::endl;
+        std::cerr << "Error starting transaction createOrder: " << mysql_error(conn) << std::endl;
         return std::nullopt;
     }
 
@@ -49,7 +49,7 @@ std::optional<int> OrderModel::createOrder(
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
     if (!stmt)
     {
-        std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
+        std::cerr << "Statement initialization failed createOrder: " << mysql_error(conn) << std::endl;
         mysql_query(conn, "ROLLBACK");
         return std::nullopt;
     }
@@ -57,7 +57,7 @@ std::optional<int> OrderModel::createOrder(
 
     if (mysql_stmt_prepare(stmt, sql, strlen(sql)) != 0)
     {
-        std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;
+        std::cerr << "Statement preparation failed createOrder: " << mysql_stmt_error(stmt) << std::endl;
         mysql_query(conn, "ROLLBACK");
         return std::nullopt;
     }
@@ -144,14 +144,14 @@ std::optional<int> OrderModel::createOrder(
 
     if (mysql_stmt_bind_param(stmt, bind) != 0)
     {
-        std::cerr << "Parameter binding failed: " << mysql_stmt_error(stmt) << std::endl;
+        std::cerr << "Parameter binding failed createOrder: " << mysql_stmt_error(stmt) << std::endl;
         mysql_query(conn, "ROLLBACK");
         return std::nullopt;
     }
 
     if (mysql_stmt_execute(stmt) != 0)
     {
-        std::cerr << "Statement execution failed: " << mysql_stmt_error(stmt) << std::endl;
+        std::cerr << "Statement execution failed createOrder: " << mysql_stmt_error(stmt) << std::endl;
         mysql_query(conn, "ROLLBACK");
         return std::nullopt;
     }
@@ -159,7 +159,7 @@ std::optional<int> OrderModel::createOrder(
     int order_id = mysql_insert_id(conn);
     if (order_id == 0)
     {
-        std::cerr << "Error retrieving last insert ID: " << mysql_error(conn) << std::endl;
+        std::cerr << "Error retrieving last insert ID in createOrder: " << mysql_error(conn) << std::endl;
         mysql_query(conn, "ROLLBACK");
         return std::nullopt;
     }
@@ -167,6 +167,7 @@ std::optional<int> OrderModel::createOrder(
     OrderItemModel orderItem;
     if (!orderItem.createOrderItem(products, order_id))
     {
+        std::cerr << "Error creating order items: " << mysql_error(conn) << std::endl;
         mysql_query(conn, "ROLLBACK");
         return std::nullopt;
     }
@@ -174,7 +175,7 @@ std::optional<int> OrderModel::createOrder(
     // Commit the transaction
     if (mysql_query(conn, "COMMIT") != 0)
     {
-        std::cerr << "Commit failed: " << mysql_error(conn) << std::endl;
+        std::cerr << "Commit failed createOrder: " << mysql_error(conn) << std::endl;
         mysql_query(conn, "ROLLBACK");
         return std::nullopt;
     }
@@ -596,7 +597,7 @@ std::optional<Order> OrderModel::updateOrder(
     // Start transaction to ensure atomicity
     if (mysql_query(conn, "START TRANSACTION") != 0)
     {
-        std::cerr << "Error starting transaction: " << mysql_error(conn) << std::endl;
+        std::cerr << "Error starting transaction updateOrder: " << mysql_error(conn) << std::endl;
         return std::nullopt;
     }
 
@@ -612,7 +613,7 @@ std::optional<Order> OrderModel::updateOrder(
         {
             std::cerr << "Statement initialization failed (check query): " << mysql_error(conn) << std::endl;
             mysql_query(conn, "ROLLBACK");
-            throw std::runtime_error("Statement initialization failed (check query)");
+            throw std::runtime_error("Statement initialization failed (check query in updateOrder)");
         }
         auto checkStmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(checkStmt, mysql_stmt_close);
         if (mysql_stmt_prepare(checkStmt, checkQuery, strlen(checkQuery)) != 0)
@@ -620,7 +621,7 @@ std::optional<Order> OrderModel::updateOrder(
             std::cerr << "Statement preparation failed (check query): " << mysql_stmt_error(checkStmt) << std::endl;
             mysql_query(conn, "ROLLBACK");
 
-            throw std::runtime_error("Statement preparation failed (check query)");
+            throw std::runtime_error("Statement preparation failed (check query in updateOrder)");
         }
         // Bind the order ID parameter for the check query
         MYSQL_BIND checkParam[1];
@@ -633,16 +634,16 @@ std::optional<Order> OrderModel::updateOrder(
             std::cerr << "Parameter binding failed (check query): " << mysql_stmt_error(checkStmt) << std::endl;
             mysql_query(conn, "ROLLBACK");
 
-            throw std::runtime_error("Parameter binding failed (check query)");
+            throw std::runtime_error("Parameter binding failed (check query in updateOrder)");
         }
 
         // Execute the check statement
         if (mysql_stmt_execute(checkStmt) != 0)
         {
-            std::cerr << "Statement execution failed (check query): " << mysql_stmt_error(checkStmt) << std::endl;
+            std::cerr << "Statement execution failed (check query in updateOrder): " << mysql_stmt_error(checkStmt) << std::endl;
             mysql_query(conn, "ROLLBACK");
 
-            throw std::runtime_error("Statement execution failed (check query)");
+            throw std::runtime_error("Statement execution failed (check query in updateOrder)");
         }
 
         // Bind the result for the check query
@@ -661,10 +662,10 @@ std::optional<Order> OrderModel::updateOrder(
         // Bind the result for the check query
         if (mysql_stmt_bind_result(checkStmt, checkResultBind) != 0)
         {
-            std::cerr << "Bind result failed (check query): " << mysql_stmt_error(checkStmt) << "\n";
+            std::cerr << "Bind result failed (check query in updateOrder): " << mysql_stmt_error(checkStmt) << "\n";
             mysql_query(conn, "ROLLBACK");
 
-            throw std::runtime_error("Bind result failed (check query)");
+            throw std::runtime_error("Bind result failed (check query in updateOrder)");
         }
         // Fetch the result of the check query
         int fetch_result = mysql_stmt_fetch(checkStmt);
@@ -677,15 +678,15 @@ std::optional<Order> OrderModel::updateOrder(
         }
         else if (fetch_result != 0)
         {
-            std::cerr << "Fetch failed (check query): " << mysql_stmt_error(checkStmt) << "\n";
+            std::cerr << "Fetch failed (check query in update Order): " << mysql_stmt_error(checkStmt) << "\n";
             mysql_query(conn, "ROLLBACK");
 
-            throw std::runtime_error("Fetch failed (check query)");
+            throw std::runtime_error("Fetch failed (check query in updateOrder)");
         }
         // Verify if the fetched user ID matches the provided user ID
         if (user_id_result != user_id)
         {
-            std::cerr << "Error: User ID " << user_id << " does not match the order's user ID " << user_id_result << std::endl;
+            std::cerr << "Error: User ID " << user_id << " does not match the order's user ID in (updateOrder) " << user_id_result << std::endl;
             mysql_query(conn, "ROLLBACK");
 
             throw std::runtime_error("User ID does not match");
@@ -805,8 +806,6 @@ std::optional<Order> OrderModel::updateOrder(
         {
             std::cerr << "No rows updated for order_id: " << order_id << std::endl;
             mysql_query(conn, "ROLLBACK");
-
-            throw std::runtime_error("No rows updated");
         }
 
         // Commit the transaction
@@ -814,7 +813,6 @@ std::optional<Order> OrderModel::updateOrder(
         {
             std::cerr << "Commit failed: " << mysql_error(conn) << std::endl;
             mysql_query(conn, "ROLLBACK");
-
             throw std::runtime_error("Commit failed");
         }
 
@@ -838,7 +836,7 @@ std::optional<Order> OrderModel::updateOrder(
     }
     catch (const std::runtime_error &e)
     {
-        std::cerr << "Error during updateOrder: " << e.what() << std::endl;
+        std::cerr << "Error during updateOrder catch: " << e.what() << std::endl;
         if (conn)
         {
             mysql_query(conn, "ROLLBACK"); // Rollback on error
@@ -849,4 +847,302 @@ std::optional<Order> OrderModel::updateOrder(
     {
         mysql_stmt_close(checkStmt);
     }
+}
+
+std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
+
+// Get database connection
+{
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn || mysql_ping(conn) != 0)
+    {
+        std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
+        throw std::runtime_error("No active database connection");
+    }
+
+    try
+    {
+
+        // Start transaction to ensure atomicity
+        if (mysql_query(conn, "START TRANSACTION") != 0)
+        {
+            std::cerr << "Error starting transaction order exists: " << mysql_error(conn) << std::endl;
+            throw std::runtime_error("Error starting transaction getOrderById");
+        }
+        // Check if the order exists
+        const char *checkQuery = "SELECT id FROM orders WHERE id = ?";
+        MYSQL_STMT *checkStmt = mysql_stmt_init(conn);
+        if (!checkStmt)
+        {
+            std::cerr << "Statement initialization failed in order exists:: " << mysql_error(conn) << std::endl;
+            throw std::runtime_error("Statement initialization failed in order exists:");
+        }
+        auto checkStmtGuard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(checkStmt, mysql_stmt_close);
+        if (mysql_stmt_prepare(checkStmt, checkQuery, strlen(checkQuery)) != 0)
+        {
+            std::cerr << "Statement preparation failed in order exists:: " << mysql_stmt_error(checkStmt) << std::endl;
+            throw std::runtime_error("Statement preparation failed in order exists:");
+        }
+        MYSQL_BIND checkParam{};
+        checkParam.buffer_type = MYSQL_TYPE_LONG;
+        checkParam.buffer = &order_id;
+        checkParam.buffer_length = sizeof(order_id);
+        if (mysql_stmt_bind_param(checkStmt, &checkParam) != 0)
+        {
+            std::cerr << "Parameter binding failed in order exists: " << mysql_stmt_error(checkStmt) << std::endl;
+            throw std::runtime_error("Parameter binding failed in order exists:");
+        }
+        if (mysql_stmt_execute(checkStmt) != 0)
+        {
+            std::cerr << "Statement execution failed in order exists: " << mysql_stmt_error(checkStmt) << std::endl;
+            throw std::runtime_error("Statement execution failed in order exists:");
+        }
+        if (mysql_stmt_affected_rows(checkStmt) == 0)
+        {
+            std::cerr << "Order not found in order exists: " << order_id << std::endl;
+            throw std::runtime_error("Order not found in order exists");
+        }
+
+        // Commit the transaction
+        if (mysql_query(conn, "COMMIT") != 0)
+        {
+            std::cerr << "Commit failed in order exists: " << mysql_error(conn) << std::endl;
+            throw std::runtime_error("Commit failed in order exists");
+        }
+        // Start a new transaction for fetching the order
+        if (mysql_query(conn, "START TRANSACTION") != 0)
+        {
+            std::cerr << "Error starting transaction CheckUser: " << mysql_error(conn) << std::endl;
+            throw std::runtime_error("Error starting transaction CheckUser");
+        }
+
+        // Check if the order exists for this user
+        const char *checkUserQuery = "SELECT user_id FROM orders WHERE id = ? and user_id = ?";
+        MYSQL_STMT *checkUserStmt = mysql_stmt_init(conn);
+        if (!checkUserStmt)
+        {
+            std::cerr << "Statement initialization failed in check user: " << mysql_error(conn) << std::endl;
+            throw std::runtime_error("Statement initialization failed in check user");
+        }
+        auto checkUserStmtGuard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(checkUserStmt, mysql_stmt_close);
+        if (mysql_stmt_prepare(checkUserStmt, checkUserQuery, strlen(checkUserQuery)) != 0)
+        {
+            std::cerr << "Statement preparation failed in check user: " << mysql_stmt_error(checkUserStmt) << std::endl;
+            throw std::runtime_error("Statement preparation failed in check user");
+        }
+        // Bind the parameters for the check user query
+        MYSQL_BIND checkUserParam[2];
+        memset(checkUserParam, 0, sizeof(checkUserParam));
+        checkUserParam[0].buffer_type = MYSQL_TYPE_LONG;
+        checkUserParam[0].buffer = &order_id;
+        checkUserParam[0].buffer_length = sizeof(order_id);
+        checkUserParam[1].buffer_type = MYSQL_TYPE_LONG;
+        checkUserParam[1].buffer = &user_id;
+        checkUserParam[1].buffer_length = sizeof(user_id);
+
+        // Bind the parameters for the check user query
+        if (mysql_stmt_bind_param(checkUserStmt, checkUserParam) != 0)
+        {
+            std::cerr << "Parameter binding failed in check user: " << mysql_stmt_error(checkUserStmt) << std::endl;
+            throw std::runtime_error("Parameter binding failed in check user");
+        }
+
+        int fetchedUserId;
+
+        // Definir el array de bind para el resultado
+        MYSQL_BIND checkUserResult[1];
+        memset(checkUserResult, 0, sizeof(checkUserResult));
+
+        // Configuramos el tipo de dato y la variable donde se almacenará el resultado
+        checkUserResult[0].buffer_type = MYSQL_TYPE_LONG;
+        checkUserResult[0].buffer = &fetchedUserId; // Es aquí donde almacenaremos el user_id
+        checkUserResult[0].buffer_length = sizeof(fetchedUserId);
+
+        // Bind result to the statement
+        if (mysql_stmt_bind_result(checkUserStmt, checkUserResult) != 0)
+        {
+            std::cerr << "Binding result failed: " << mysql_stmt_error(checkUserStmt) << std::endl;
+            throw std::runtime_error("Binding result failed in check user");
+        }
+
+        if (mysql_stmt_execute(checkUserStmt) != 0)
+        {
+            std::cerr << "Statement execution failed in check user: " << mysql_stmt_error(checkUserStmt) << std::endl;
+            throw std::runtime_error("Statement execution failed in check user");
+        }
+        int fetchResult = mysql_stmt_fetch(checkUserStmt);
+        if (fetchResult == MYSQL_NO_DATA)
+        {
+            throw std::runtime_error("Order not found for this user");
+        }
+        else if (fetchResult != 0) // Si hubo un error diferente
+        {
+            std::cerr << "Fetch error: " << mysql_stmt_error(checkUserStmt) << std::endl;
+            throw std::runtime_error("Fetch error in check user");
+        }
+
+        if (fetchedUserId != user_id) // Si los user_id no coinciden
+        {
+            throw std::runtime_error("User ID does not match the order");
+        }
+
+        if (mysql_query(conn, "COMMIT") != 0)
+        {
+            std::cerr << "Commit failed: " << mysql_error(conn) << std::endl;
+            throw std::runtime_error("Commit failed in check user");
+        }
+
+        // Start a new transaction for fetching the order
+        if (mysql_query(conn, "START TRANSACTION") != 0)
+        {
+            std::cerr << "Error starting transaction getOrderById: " << mysql_error(conn) << std::endl;
+            throw std::runtime_error("Error starting transaction getOrderById");
+        }
+
+        // Prepare the SQL statement
+        const char *query =
+            "SELECT id, user_id, shipping_address_id, billing_address_id,"
+            "       order_date, status, total, shipment_date,"
+            "       delivery_date, carrier, tracking_url,"
+            "       tracking_number, payment_method, payment_status"
+            "  FROM orders WHERE id = ?";
+        MYSQL_STMT *stmt = mysql_stmt_init(conn);
+        if (!stmt)
+        {
+            std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
+            throw std::runtime_error("Statement initialization failed");
+        }
+        auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+        if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+        {
+            std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;
+            throw std::runtime_error("Statement preparation failed");
+        }
+
+        // Bind the parameters
+        MYSQL_BIND param{};
+        param.buffer_type = MYSQL_TYPE_LONG;
+        param.buffer = &order_id;
+        param.buffer_length = sizeof(order_id);
+
+        if (mysql_stmt_bind_param(stmt, &param) != 0)
+        {
+            std::cerr << "Parameter binding failed: " << mysql_stmt_error(stmt) << std::endl;
+            throw std::runtime_error("Parameter binding failed");
+        }
+
+        // Execute the statement
+        if (mysql_stmt_execute(stmt) != 0)
+        {
+            std::cerr << "Statement execution failed: " << mysql_stmt_error(stmt) << std::endl;
+            throw std::runtime_error("Statement execution failed");
+        }
+
+        // Bind the results
+        MYSQL_BIND result_bind[14];
+        memset(result_bind, 0, sizeof(result_bind));
+        int id, user_id_query, shipping_address_id, billing_address_id;
+        double total;
+        char order_date[64], status[32];
+        char ship_date[64], delivery_date[64],
+            carrier[64];
+        char tracking_url[256], tracking_number[64];
+        char payment_method[64], payment_status[64];
+
+        result_bind[0].buffer_type = MYSQL_TYPE_LONG;
+        result_bind[0].buffer = &id;
+        result_bind[0].buffer_length = sizeof(id);
+
+        result_bind[1].buffer_type = MYSQL_TYPE_LONG;
+        result_bind[1].buffer = &user_id_query;
+        result_bind[1].buffer_length = sizeof(user_id_query);
+
+        result_bind[2].buffer_type = MYSQL_TYPE_LONG;
+        result_bind[2].buffer = &shipping_address_id;
+        result_bind[2].buffer_length = sizeof(shipping_address_id);
+
+        result_bind[3].buffer_type = MYSQL_TYPE_LONG;
+        result_bind[3].buffer = &billing_address_id;
+        result_bind[3].buffer_length = sizeof(billing_address_id);
+
+        result_bind[4].buffer_type = MYSQL_TYPE_STRING;
+        result_bind[4].buffer = order_date;
+        result_bind[4].buffer_length = sizeof(order_date);
+
+        result_bind[5].buffer_type = MYSQL_TYPE_STRING;
+        result_bind[5].buffer = status;
+        result_bind[5].buffer_length = sizeof(status);
+
+        result_bind[6].buffer_type = MYSQL_TYPE_DOUBLE;
+        result_bind[6].buffer = &total;
+        result_bind[6].buffer_length = sizeof(total);
+
+        result_bind[7].buffer_type = MYSQL_TYPE_STRING;
+        result_bind[7].buffer = ship_date;
+        result_bind[7].buffer_length = sizeof(ship_date);
+
+        result_bind[8].buffer_type = MYSQL_TYPE_STRING;
+        result_bind[8].buffer = delivery_date;
+        result_bind[8].buffer_length = sizeof(delivery_date);
+
+        result_bind[9].buffer_type = MYSQL_TYPE_STRING;
+        result_bind[9].buffer = carrier;
+        result_bind[9].buffer_length = sizeof(carrier);
+
+        result_bind[10].buffer_type = MYSQL_TYPE_STRING;
+        result_bind[10].buffer = tracking_url;
+        result_bind[10].buffer_length = sizeof(tracking_url);
+
+        result_bind[11].buffer_type = MYSQL_TYPE_STRING;
+        result_bind[11].buffer = tracking_number;
+        result_bind[11].buffer_length = sizeof(tracking_number);
+
+        result_bind[12].buffer_type = MYSQL_TYPE_STRING;
+        result_bind[12].buffer = payment_method;
+        result_bind[12].buffer_length = sizeof(payment_method);
+
+        result_bind[13].buffer_type = MYSQL_TYPE_STRING;
+        result_bind[13].buffer = payment_status;
+        result_bind[13].buffer_length = sizeof(payment_status);
+        if (mysql_stmt_bind_result(stmt, result_bind) != 0)
+        {
+            std::cerr << "Result binding failed: " << mysql_stmt_error(stmt) << std::endl;
+            throw std::runtime_error("Result binding failed");
+        }
+        if (mysql_stmt_fetch(stmt) != 0)
+        {
+            std::cerr << "Fetch failed: " << mysql_stmt_error(stmt) << std::endl;
+            throw std::runtime_error("Fetch failed");
+        }
+        Order order;
+        order.id = id;
+        order.user_id = user_id_query;
+        order.shipping_address_id = shipping_address_id;
+        order.billing_address_id = billing_address_id;
+        order.order_date = order_date;
+        order.status = status;
+        order.total = total;
+        order.shipment_date = ship_date;
+        order.delivery_date = delivery_date;
+        order.carrier = carrier;
+        order.tracking_url = tracking_url;
+        order.tracking_number = tracking_number;
+        order.payment_method = payment_method;
+        order.payment_status = payment_status;
+        // Commit the transaction
+        if (mysql_query(conn, "COMMIT") != 0)
+        {
+            std::cerr << "Commit failed: " << mysql_error(conn) << std::endl;
+            throw std::runtime_error("Commit failed");
+        }
+        return order;
+    }
+    catch (const std::exception &e)
+    {
+        mysql_query(conn, "ROLLBACK");
+        std::cerr << "Error in getOrderById: " << e.what() << std::endl;
+        return std::nullopt;
+    }
+    // Get database connection
 }
