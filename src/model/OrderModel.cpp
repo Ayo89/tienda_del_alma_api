@@ -570,7 +570,7 @@ std::optional<Order> OrderModel::getPendingOrderByUserId(int &user_id)
     return order;
 }
 
-std::optional<Order> OrderModel::updateOrder(
+std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
     const int &user_id,
     const int &order_id,
     const int &shipping_address_id,
@@ -591,14 +591,14 @@ std::optional<Order> OrderModel::updateOrder(
     if (!conn || mysql_ping(conn) != 0)
     {
         std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
-        return std::nullopt;
+        return {std::nullopt, Errors::DatabaseConnectionFailed};
     }
 
     // Start transaction to ensure atomicity
     if (mysql_query(conn, "START TRANSACTION") != 0)
     {
         std::cerr << "Error starting transaction updateOrder: " << mysql_error(conn) << std::endl;
-        return std::nullopt;
+        return {std::nullopt, Errors::TransactionStartFailed};
     }
 
     MYSQL_STMT *checkStmt = nullptr;
@@ -633,7 +633,6 @@ std::optional<Order> OrderModel::updateOrder(
         {
             std::cerr << "Parameter binding failed (check query): " << mysql_stmt_error(checkStmt) << std::endl;
             mysql_query(conn, "ROLLBACK");
-
             throw std::runtime_error("Parameter binding failed (check query in updateOrder)");
         }
 
@@ -642,7 +641,6 @@ std::optional<Order> OrderModel::updateOrder(
         {
             std::cerr << "Statement execution failed (check query in updateOrder): " << mysql_stmt_error(checkStmt) << std::endl;
             mysql_query(conn, "ROLLBACK");
-
             throw std::runtime_error("Statement execution failed (check query in updateOrder)");
         }
 
@@ -673,7 +671,6 @@ std::optional<Order> OrderModel::updateOrder(
         {
             std::cerr << "No data found for order_id: " << order_id << "\n";
             mysql_query(conn, "ROLLBACK");
-
             throw std::runtime_error("No data found for order_id");
         }
         else if (fetch_result != 0)
@@ -688,7 +685,6 @@ std::optional<Order> OrderModel::updateOrder(
         {
             std::cerr << "Error: User ID " << user_id << " does not match the order's user ID in (updateOrder) " << user_id_result << std::endl;
             mysql_query(conn, "ROLLBACK");
-
             throw std::runtime_error("User ID does not match");
         }
 
@@ -806,6 +802,9 @@ std::optional<Order> OrderModel::updateOrder(
         {
             std::cerr << "No rows updated for order_id: " << order_id << std::endl;
             mysql_query(conn, "ROLLBACK");
+            Order order;
+            order.id = order_id;
+            return {order, Errors::NoRowsAffected};
         }
 
         // Commit the transaction
@@ -832,7 +831,7 @@ std::optional<Order> OrderModel::updateOrder(
         order.tracking_number = tracking_number;
         order.payment_method = payment_method;
         order.payment_status = payment_status;
-        return order;
+        return {order, Errors::NoError};
     }
     catch (const std::runtime_error &e)
     {
@@ -841,7 +840,7 @@ std::optional<Order> OrderModel::updateOrder(
         {
             mysql_query(conn, "ROLLBACK"); // Rollback on error
         }
-        return std::nullopt;
+        return {std::nullopt, Errors::CatchError};
     }
     if (checkStmt)
     {

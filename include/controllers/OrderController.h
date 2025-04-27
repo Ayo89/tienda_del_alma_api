@@ -10,6 +10,7 @@
 #include "model/OrderModel.h"
 #include "AuthUtils.h"
 #include "services/jwt/JwtService.h"
+#include "utils/Errors.h"
 
 class OrderController
 {

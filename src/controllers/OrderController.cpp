@@ -101,7 +101,8 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     if (optOrder.has_value()) // If the order exists, update it
     {
         Order &existingOrder = optOrder.value();
-        std::optional<Order> updatedOrder = orderModel.updateOrder(
+
+        auto [updatedOrder, error] = orderModel.updateOrder(
             user_id,
             existingOrder.id,
             shipping_address_id,
@@ -115,22 +116,38 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
             tracking_number,
             payment_method,
             payment_status);
+
         std::optional<int> optOrderItemId = orderItemModel.syncOrderItems(products, existingOrder.id); // Sync products with the order
-        if (!updatedOrder)
+
+        web::json::value respBody;
+        if (error == Errors::NoError || error == Errors::NoRowsAffected)
         {
-            response.set_status_code(web::http::status_codes::InternalError);
-            response.set_body(U("Unable to update existing pending order"));
+
+            response.set_status_code(web::http::status_codes::OK);
+            respBody[U("order_id")] = web::json::value::number(updatedOrder.value().id);
+
+            if (error == Errors::NoRowsAffected)
+            {
+                respBody[U("message")] = web::json::value::string(U("No changes made to the order"));
+            }
+            else
+            {
+                respBody[U("message")] = web::json::value::string(U("Order updated successfully"));
+            }
+
+            response.headers().add(U("Content-Type"), U("application/json"));
+            response.set_body(respBody);
             return response;
         }
-
-        response.set_status_code(web::http::status_codes::OK);
-        web::json::value respBody;
-        respBody[U("order_id")] = web::json::value::number(updatedOrder.value().id); // Use the updated order's ID
-        respBody[U("message")] = web::json::value::string(U("Order updated successfully"));
-        response.headers().add(U("Content-Type"), U("application/json"));
-        response.set_body(respBody);
-        return response;
+        else
+        {
+            // 💥 Aquí controlas el error
+            response.set_status_code(web::http::status_codes::InternalError);
+            response.set_body(U("Error updating order"));
+            return response;
+        }
     }
+
     else
     {
         // Order does not exist, create a new order
