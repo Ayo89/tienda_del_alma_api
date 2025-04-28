@@ -1,13 +1,13 @@
 #include "model/OrderModel.h"
 
 OrderModel::OrderModel() = default;
+OrderItemModel orderItemModel;
 
 std::optional<int> OrderModel::createOrder(
     const int &user_id,
     const int &shipping_address_id,
     const int &billing_address_id,
     const std::string &status,
-    const double &total,
     const std::vector<OrderItem> &products,
     const std::string &shipment_date,
     const std::string &delivery_date,
@@ -62,6 +62,9 @@ std::optional<int> OrderModel::createOrder(
         return std::nullopt;
     }
 
+    // Calculate the total amount
+    double total = orderItemModel.calculateOrderTotal(products);
+    std::cout << "Total amount: " << total << std::endl;
     // Bind the parameters
     MYSQL_BIND bind[12];
     memset(bind, 0, sizeof(bind));
@@ -575,8 +578,8 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
     const int &order_id,
     const int &shipping_address_id,
     const int &billing_address_id,
+    const std::vector<OrderItem> &products,
     const std::string &status,
-    const double &total,
     const std::string &shipment_date,
     const std::string &delivery_date,
     const std::string &carrier,
@@ -690,6 +693,10 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
 
         mysql_stmt_free_result(checkStmt);
 
+        if (carrier != "")
+        {
+        }
+
         // Prepare the update statement
         const char *query = "UPDATE orders "
                             "SET shipping_address_id = ?, billing_address_id = ?, "
@@ -714,6 +721,8 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
             throw std::runtime_error("Statement preparation failed (update query)");
         }
 
+        double total = orderItemModel.calculateOrderTotal(products);
+
         // Bind the parameters for the update query
         constexpr size_t NUM_PARAMS = 12;
         MYSQL_BIND param[NUM_PARAMS];
@@ -735,9 +744,10 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
         param[2].buffer_length = status.length();
 
         // Column 3 → total
+        double total_val = total;
         param[3].buffer_type = MYSQL_TYPE_DOUBLE;
-        param[3].buffer = (void *)&total;
-        param[3].buffer_length = sizeof(total);
+        param[3].buffer = (void *)&total_val;
+        param[3].buffer_length = sizeof(total_val);
 
         // Column 4 → shipment_date
         param[4].buffer_type = MYSQL_TYPE_STRING;

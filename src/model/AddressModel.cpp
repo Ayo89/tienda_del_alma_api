@@ -747,7 +747,9 @@ std::optional<Address> AddressModel::getAddressById(const int &address_id, const
 }
 //---------------->>DELETE ADDRESS BY ID AND USER ID<<------------------//
 
-std::optional<int> AddressModel::deleteAddress(const int &user_id, const int &address_id, const std::string &type)
+std::optional<int> AddressModel::deleteAddress(
+    const int &user_id,
+    const int &address_id, const std::string &type)
 {
     // Obtener la conexión a la base de datos
     DatabaseConnection &db = DatabaseConnection::getInstance();
@@ -759,7 +761,6 @@ std::optional<int> AddressModel::deleteAddress(const int &user_id, const int &ad
     }
 
     const char *query = nullptr;
-
 
     if (type == "billing")
     {

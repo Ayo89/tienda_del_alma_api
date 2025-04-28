@@ -10,6 +10,7 @@
 #include <cpprest/json.h>
 #include "db/DatabaseInitializer.h"
 #include "model/ProductModel.h"
+#include "model/CarrierModel.h"
 
 using namespace web;
 using namespace web::http;
@@ -52,6 +53,10 @@ int main()
     if (!productModel.insertSampleProducts())
     {
         wcout << L"Error: No se pudo insertar productos de muestra" << endl;
+    }
+    CarrierModel carrierModel;
+    if (!carrierModel.insertSampleCarriers()){
+        wcout << L"Error: No se pudo insertar transportistas de muestra" << endl;
     }
 
     try

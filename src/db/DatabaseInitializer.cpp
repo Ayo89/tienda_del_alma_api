@@ -39,10 +39,11 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "DROP TABLE IF EXISTS orders;",
             "DROP TABLE IF EXISTS inventory;",
             "DROP TABLE IF EXISTS products;",
+            /*                       "DROP TABLE IF EXISTS shipping_addresses;",
+            "DROP TABLE IF EXISTS billing_addresses;", */
             "DROP TABLE IF EXISTS categories;",
             "DROP TABLE IF EXISTS brands;",
-            /*                       "DROP TABLE IF EXISTS shipping_addresses;",
-                                    "DROP TABLE IF EXISTS billing_addresses;", */
+            "DROP TABLE IF EXISTS carriers;",
             "DROP TABLE IF EXISTS password_resets;",
             /*            "DROP TABLE IF EXISTS users;" */};
         for (const char *q : dropQueries)
@@ -164,12 +165,22 @@ bool DatabaseInitializer::initialize(bool forceInit)
     if (!executeQuery(query))
         return false;
 
+    query = "CREATE TABLE IF NOT EXISTS carriers ("
+            "id INT AUTO_INCREMENT PRIMARY KEY, "
+            "name VARCHAR(100) NOT NULL UNIQUE, "
+            "price DECIMAL(10,2) NOT NULL, "
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            ") ENGINE=InnoDB;";
+    if (!executeQuery(query))
+        return false;
+
     // Tabla de órdenes con campos de pago integrados
     query = "CREATE TABLE IF NOT EXISTS orders ("
             "id INT AUTO_INCREMENT PRIMARY KEY, "
             "user_id INT NOT NULL, "
             "shipping_address_id INT NOT NULL, "
             "billing_address_id INT NOT NULL, "
+            "carrier_id INT, "
             "status VARCHAR(50) NOT NULL, "
             "total DECIMAL(10,2) NOT NULL, "
             "shipment_date VARCHAR(100), "
@@ -183,7 +194,8 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
             "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, "
             "FOREIGN KEY (billing_address_id) REFERENCES billing_addresses(id) ON DELETE CASCADE, "
-            "FOREIGN KEY (shipping_address_id) REFERENCES shipping_addresses(id) ON DELETE CASCADE"
+            "FOREIGN KEY (shipping_address_id) REFERENCES shipping_addresses(id) ON DELETE CASCADE, "
+            "FOREIGN KEY (carrier_id) REFERENCES carriers(id) ON DELETE SET NULL"
             ") ENGINE=InnoDB;";
     if (!executeQuery(query))
         return false;

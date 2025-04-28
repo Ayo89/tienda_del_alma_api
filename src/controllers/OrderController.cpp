@@ -41,22 +41,20 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
         response.set_body(U("Invalid JSON body"));
         return response;
     }
-
+    std::cout << body.has_field(U("products")) << std::endl; // Debugging line to print the JSON body
     // 3. Validate required fields in the body
     if (!body.has_field(U("shipping_address_id")) ||
         !body.has_field(U("billing_address_id")) ||
-        !body.has_field(U("total")) ||
         !body.has_field(U("products")))
     {
         response.set_status_code(web::http::status_codes::BadRequest);
-        response.set_body(U("Missing required fields: shipping_address_id, billing_address_id, total, products"));
+        response.set_body(U("Missing required fields: shipping_address_id, billing_address_id, products"));
         return response;
     }
 
     int shipping_address_id = body[U("shipping_address_id")].as_integer();
     int billing_address_id = body[U("billing_address_id")].as_integer();
     std::string status = body.has_field(U("status")) ? body[U("status")].as_string() : "pending"; // Default status is "pending"
-    double total = body[U("total")].as_double();
 
     // 4. Parse products (items) from the JSON array
     std::vector<OrderItem> products;
@@ -107,8 +105,8 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
             existingOrder.id,
             shipping_address_id,
             billing_address_id,
+            products,
             status,
-            total,
             shipment_date,
             delivery_date,
             carrier,
@@ -122,7 +120,6 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
         web::json::value respBody;
         if (error == Errors::NoError || error == Errors::NoRowsAffected)
         {
-
             response.set_status_code(web::http::status_codes::OK);
             respBody[U("order_id")] = web::json::value::number(updatedOrder.value().id);
 
@@ -141,7 +138,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
         }
         else
         {
-            // 💥 Aquí controlas el error
+
             response.set_status_code(web::http::status_codes::InternalError);
             response.set_body(U("Error updating order"));
             return response;
@@ -156,7 +153,6 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
             shipping_address_id,
             billing_address_id,
             status,
-            total,
             products,
             shipment_date,
             delivery_date,

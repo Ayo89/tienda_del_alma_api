@@ -433,3 +433,16 @@ std::optional<int> OrderItemModel::syncOrderItems(const std::vector<OrderItem> &
 
     return 1; // Indicating successful synchronization
 }
+
+//---------- CALCULATE ORDER TOTAL ----------
+
+double OrderItemModel::calculateOrderTotal(const std::vector<OrderItem> &products)
+{
+    double total{0.0};
+    for (const auto &item : products)
+    {
+        total += item.price * item.quantity;
+    }
+    return total;
+}
+//---------- END OF CALCULATE ORDER TOTAL ----------
