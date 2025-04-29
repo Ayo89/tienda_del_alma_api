@@ -7,7 +7,6 @@ std::optional<int> OrderModel::createOrder(
     const int &user_id,
     const int &shipping_address_id,
     const int &billing_address_id,
-    const std::string &status,
     const std::vector<OrderItem> &products,
     const std::string &shipment_date,
     const std::string &delivery_date,
@@ -68,6 +67,7 @@ std::optional<int> OrderModel::createOrder(
     // Bind the parameters
     MYSQL_BIND bind[12];
     memset(bind, 0, sizeof(bind));
+    std::string status = "pending"; // Default status
 
     // Set the parameter types and values
     unsigned long len_status = status.size();
@@ -579,7 +579,6 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
     const int &shipping_address_id,
     const int &billing_address_id,
     const std::vector<OrderItem> &products,
-    const std::string &status,
     const std::string &shipment_date,
     const std::string &delivery_date,
     const std::string &carrier,
@@ -727,6 +726,7 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
         constexpr size_t NUM_PARAMS = 12;
         MYSQL_BIND param[NUM_PARAMS];
         memset(param, 0, sizeof(param));
+        std::string status = "pending";
 
         // Column 0 → shipping_address_id
         param[0].buffer_type = MYSQL_TYPE_LONG;
@@ -907,7 +907,16 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
             std::cerr << "Statement execution failed in order exists: " << mysql_stmt_error(checkStmt) << std::endl;
             throw std::runtime_error("Statement execution failed in order exists:");
         }
-        if (mysql_stmt_affected_rows(checkStmt) == 0)
+
+        // IMPORTANTE: almacenar el resultado (aunque no lo uses)
+        if (mysql_stmt_store_result(checkStmt) != 0)
+        {
+            std::cerr << "Error storing result in order exists: " << mysql_stmt_error(checkStmt) << std::endl;
+            throw std::runtime_error("Error storing result in order exists");
+        }
+
+        // Intentar fetch para ver si hay alguna fila
+        if (mysql_stmt_fetch(checkStmt) == MYSQL_NO_DATA)
         {
             std::cerr << "Order not found in order exists: " << order_id << std::endl;
             throw std::runtime_error("Order not found in order exists");
@@ -995,6 +1004,7 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
         {
             throw std::runtime_error("User ID does not match the order");
         }
+        mysql_stmt_free_result(checkUserStmt);
 
         if (mysql_query(conn, "COMMIT") != 0)
         {
@@ -1140,6 +1150,7 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
         order.payment_method = payment_method;
         order.payment_status = payment_status;
         // Commit the transaction
+        mysql_stmt_free_result(stmt);
         if (mysql_query(conn, "COMMIT") != 0)
         {
             std::cerr << "Commit failed: " << mysql_error(conn) << std::endl;

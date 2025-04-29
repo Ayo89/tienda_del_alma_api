@@ -94,6 +94,14 @@ void Router::setup_routes()
             response = orderController.getOrderById(request);
         }
 
+        //PAYPAL
+
+        if (method == web::http::methods::POST && path.find(U("/paypal/")) == 0)
+        {
+            PaypalController paypalController;
+            response = paypalController.createPayment(request);
+        }
+
         // 🔹 Añadir encabezados CORS
         Server::add_cors_headers(response);
 

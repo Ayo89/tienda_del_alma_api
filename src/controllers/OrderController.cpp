@@ -54,7 +54,6 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
 
     int shipping_address_id = body[U("shipping_address_id")].as_integer();
     int billing_address_id = body[U("billing_address_id")].as_integer();
-    std::string status = body.has_field(U("status")) ? body[U("status")].as_string() : "pending"; // Default status is "pending"
 
     // 4. Parse products (items) from the JSON array
     std::vector<OrderItem> products;
@@ -106,7 +105,6 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
             shipping_address_id,
             billing_address_id,
             products,
-            status,
             shipment_date,
             delivery_date,
             carrier,
@@ -152,7 +150,6 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
             user_id,
             shipping_address_id,
             billing_address_id,
-            status,
             products,
             shipment_date,
             delivery_date,

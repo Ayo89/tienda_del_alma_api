@@ -41,12 +41,15 @@ add_executable(tienda_del_alma
   src/controllers/ProductController.cpp
   src/controllers/AddressController.cpp
   src/controllers/OrderController.cpp
+  src/controllers/PaypalController.cpp
   src/model/UserModel.cpp
   src/model/ProductModel.cpp
   src/model/AddressModel.cpp
   src/model/OrderModel.cpp
   src/model/OrderItemModel.cpp
   src/model/CarrierModel.cpp
+  src/utils/UtilsOwner.cpp
+  src/services/PaypalService.cpp
 )
 
 # 6️⃣ Rutas de inclusión PER-TARGET (mejor que include_directories)
