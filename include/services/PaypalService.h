@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <utility>
+#include "db/DatabaseConnection.h"
 
 using namespace web;
 using namespace web::http;
@@ -19,6 +20,7 @@ public:
     PaypalService();
     http_response createPayment(const double &total);
     std::string getAccessToken();
+    http_response capturePayment(const std::string &orderId);
 };
 
 #endif

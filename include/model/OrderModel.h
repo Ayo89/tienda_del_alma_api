@@ -51,6 +51,15 @@ public:
         const std::string &tracking_number,
         const std::string &payment_method,
         const std::string &payment_status);
+
+    std::pair<std::optional<Order>, Errors> updateOrderPaypalId(
+        const int &user_id,
+        const int &order_id,
+        const std::string &paypal_order_id);
+    std::pair<std::optional<Order>, Errors> updateOrderStatus(
+        const int &user_id,
+        const int &order_id,
+        const std::string &status);
 };
 
 #endif
