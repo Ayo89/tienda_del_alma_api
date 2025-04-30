@@ -18,7 +18,7 @@ class PaypalService
 {
 public:
     PaypalService();
-    http_response createPayment(const double &total);
+    http_response createPayment(const std::string &total);
     std::string getAccessToken();
     http_response capturePayment(const std::string &orderId);
 };

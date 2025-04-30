@@ -4,7 +4,7 @@
 PaypalService::PaypalService()
 {
 }
-http_response PaypalService::createPayment(const double &total)
+http_response PaypalService::createPayment(const std::string &total)
 {
     PaypalService paypalService;
     std::string token = paypalService.getAccessToken();
@@ -39,7 +39,7 @@ http_response PaypalService::createPayment(const double &total)
 
     web::json::value amount = web::json::value::object();
     amount[U("currency_code")] = web::json::value::string(U("EUR"));
-    amount[U("value")] = web::json::value::string(U("100.00"));
+    amount[U("value")] = web::json::value::string(total);
 
     web::json::value purchase_unit = web::json::value::object();
     purchase_unit[U("amount")] = amount;

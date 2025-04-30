@@ -50,9 +50,16 @@ web::http::http_response PaypalController::createPayment(const web::http::http_r
     }
 
     PaypalService paypalService;
+    const auto total = UtilsOwner::toString2Dec(order.total);
+    if (total.empty())
+    {
+        response.set_status_code(web::http::status_codes::BadRequest);
+        response.set_body(U("Invalid total amount"));
+        return response;
+    }
     try
     {
-        auto paymentResponse = paypalService.createPayment(order.total);
+        auto paymentResponse = paypalService.createPayment(total);
         auto jsonResponse = paymentResponse.extract_json().get();
 
         std::string storedPaypalId = order.paypal_order_id;

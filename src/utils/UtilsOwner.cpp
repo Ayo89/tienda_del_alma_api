@@ -21,3 +21,17 @@ auto UtilsOwner::base64_encode(const std::string &input) -> std::string
         encoded.push_back('=');
     return encoded;
 }
+
+auto UtilsOwner::roundToTwoDecimal(double value) -> double
+{
+    return std::round(value * 100.0) / 100.0;
+}
+
+auto UtilsOwner::toString2Dec(double value) -> std::string
+{
+    std::ostringstream oss;
+    oss << std::fixed
+        << std::setprecision(2)
+        << value;
+    return oss.str();
+}
