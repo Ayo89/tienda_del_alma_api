@@ -6,20 +6,24 @@ PaypalService::PaypalService()
 }
 http_response PaypalService::createPayment(const std::string &total)
 {
-    PaypalService paypalService;
-    std::string token = paypalService.getAccessToken();
+
+    std::string token = getAccessToken();
     if (token.empty())
     {
         std::cerr << "Error al obtener el token de acceso" << std::endl;
         return http_response(status_codes::InternalError);
     }
+
+    std::string idempotencyKey = UtilsOwner::generateUuid();
+
     // Crear encabezados
     http_request request(methods::POST);
     request.headers().add(U("Content-Type"), U("application/json"));
     request.headers().add(U("Authorization"), U("Bearer ") + utility::conversions::to_string_t(token));
     request.headers().add(U("Accept"), U("application/json"));
     request.headers().add(U("Accept-Language"), U("en_US"));
-    request.headers().add(U("PayPal-Request-Id"), U("unique-request-id"));
+    request.headers().add(U("PayPal-Request-Id"),
+                          utility::conversions::to_string_t(idempotencyKey));
     request.headers().add(U("Prefer"), U("return=representation"));
 
     // Crear el cuerpo de la solicitud
@@ -39,6 +43,7 @@ http_response PaypalService::createPayment(const std::string &total)
 
     web::json::value amount = web::json::value::object();
     amount[U("currency_code")] = web::json::value::string(U("EUR"));
+    std::cout << "Total: " << total << std::endl;
     amount[U("value")] = web::json::value::string(total);
 
     web::json::value purchase_unit = web::json::value::object();
@@ -63,6 +68,7 @@ http_response PaypalService::createPayment(const std::string &total)
             web::json::value result = web::json::value::object();
             result[U("orderID")] = web::json::value::string(utility::conversions::to_string_t(order_id));
             http_response customResponse(status_codes::OK);
+            std::cout << json.serialize() << std::endl;
             customResponse.set_body(result);
             return customResponse;
         }
@@ -95,8 +101,8 @@ std::string PaypalService::getAccessToken()
     EnvLoader env(".env");
     env.load();
 
-    std::string clientId = env.get("PAYPAL_CLIENT_ID", clientId);
-    std::string clientSecret = env.get("PAYPAL_CLIENT_SECRET", clientSecret);
+    std::string clientId = env.get("PAYPAL_CLIENT_ID", "");
+    std::string clientSecret = env.get("PAYPAL_CLIENT_SECRET", "");
 
     // Autenticación Basic con clientId:clientSecret en base64
     std::string encodedCredentials = UtilsOwner::base64_encode(clientId + ":" + clientSecret);

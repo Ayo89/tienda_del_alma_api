@@ -25,6 +25,7 @@ find_package(cpprestsdk REQUIRED)
 find_package(OpenSSL REQUIRED)                # libssl
 pkg_check_modules(MYSQL REQUIRED mysqlclient) # mysqlclient
 pkg_check_modules(SODIUM REQUIRED libsodium)  # libsodium
+find_library(UUID_LIBRARY NAMES uuid) # uuid
 
 # 5️⃣ Define tu ejecutable y sus fuentes
 add_executable(tienda_del_alma
@@ -68,6 +69,7 @@ target_link_libraries(tienda_del_alma PRIVATE
   ${MYSQL_LIBRARIES}
   ${SODIUM_LIBRARIES}
   jwt-cpp
+  ${UUID_LIBRARY}
 )
 
 # 8️⃣ Asegúrate de exportar también los flags de compilación a tu IDE
