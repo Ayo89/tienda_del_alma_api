@@ -351,7 +351,7 @@ web::http::http_response OrderController::updateTotalbyOrderId(const web::http::
     }
 
     double newTotal = optOrder->total + optCarrier->price;
-    
+
     // 5 call updateOrderTotal
     auto [result, errorsUpdateOrderTotal] = orderModel.updateOrderTotal(order_id, newTotal);
     if (!result)
@@ -360,7 +360,7 @@ web::http::http_response OrderController::updateTotalbyOrderId(const web::http::
         response.set_body(U("Failed to update order total"));
         return response;
     }
-
+    response.set_status_code(web::http::status_codes::OK);
     // 6. Prepare the JSON response
     web::json::value json_order;
     json_order[U("order_id")] = web::json::value::number(order_id);
