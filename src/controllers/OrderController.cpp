@@ -84,7 +84,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     };
     std::string shipment_date = getOpt(U("shipment_date"));
     std::string delivery_date = getOpt(U("delivery_date"));
-    std::string carrier = getOpt(U("carrier"));
+    int carrier_id = body.has_field(U("carrier_id")) ? std::stoi(body[U("carrier_id")].as_string()) : 1;
     std::string tracking_url = getOpt(U("tracking_url"));
     std::string tracking_number = getOpt(U("tracking_number"));
     std::string payment_method = getOpt(U("payment_method"));
@@ -107,7 +107,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
             products,
             shipment_date,
             delivery_date,
-            carrier,
+            carrier_id,
             tracking_url,
             tracking_number,
             payment_method,
@@ -145,6 +145,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
 
     else
     {
+        std::cout << "carrier_id" << carrier_id << std::endl;
         // Order does not exist, create a new order
         std::optional<int> optOrderId = model.createOrder(
             user_id,
@@ -153,7 +154,7 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
             products,
             shipment_date,
             delivery_date,
-            carrier,
+            carrier_id,
             tracking_url,
             tracking_number,
             payment_method,
@@ -215,7 +216,7 @@ web::http::http_response OrderController::getOrdersByUserId(const web::http::htt
             json_orders[U("total")] = web::json::value::number(order.total);
             json_orders[U("shipment_date")] = web::json::value::string(order.shipment_date);
             json_orders[U("delivery_date")] = web::json::value::string(order.delivery_date);
-            json_orders[U("carrier")] = web::json::value::string(order.carrier);
+            json_orders[U("carrier_id")] = web::json::value::number(order.carrier_id);
             json_orders[U("tracking_url")] = web::json::value::string(order.tracking_url);
             json_orders[U("tracking_number")] = web::json::value::string(order.tracking_number);
             json_orders[U("payment_method")] = web::json::value::string(order.payment_method);
@@ -282,11 +283,89 @@ web::http::http_response OrderController::getOrderById(const web::http::http_req
     json_order[U("total")] = web::json::value::number(order.total);
     json_order[U("shipment_date")] = web::json::value::string(order.shipment_date);
     json_order[U("delivery_date")] = web::json::value::string(order.delivery_date);
-    json_order[U("carrier")] = web::json::value::string(order.carrier);
+    json_order[U("carrier_id")] = web::json::value::number(order.carrier_id);
     json_order[U("tracking_url")] = web::json::value::string(order.tracking_url);
     json_order[U("tracking_number")] = web::json::value::string(order.tracking_number);
     json_order[U("payment_method")] = web::json::value::string(order.payment_method);
     json_order[U("payment_status")] = web::json::value::string(order.payment_status);
+    response.set_body(json_order);
+    return response;
+}
+
+web::http::http_response OrderController::updateTotalbyOrderId(const web::http::http_request &request)
+{
+    web::http::http_response response;
+
+    // 1. Obtain user_id from JWT token
+    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
+    if (!optUserId.has_value()) // If token is not provided or is invalid
+    {
+        response.set_status_code(web::http::status_codes::Unauthorized);
+        response.set_body(U("Token not provided or invalid"));
+        return response;
+    }
+    int user_id = std::stoi(optUserId.value());
+
+    // 2. Get carrier_id from the request URI
+    auto uri = request.request_uri(); // Extract the URI from the request
+    auto path_segments = web::uri::split_path(uri.path());
+    if (path_segments.size() != 4 || path_segments[0] != U("order") || path_segments[2] != U("carrier"))
+    {
+        response.set_status_code(web::http::status_codes::BadRequest);
+        response.set_body(U("Invalid URI format. Expected: /order/{id}/carrier/{id}"));
+        return response;
+    }
+
+    int order_id = std::stoi(path_segments[1]);
+    int carrier_id = std::stoi(path_segments[3]);
+    std::cout << "order_id: " << order_id << std::endl;
+    std::cout << "carrier_id: " << carrier_id << std::endl;
+    // 3. Call de model to get Carrier by ID
+    CarrierModel carrierModel;
+
+    auto [optCarrier, errorsGetCarrier] = carrierModel.getCarrierById(carrier_id);
+    std::cout << "Carrier price: " << optCarrier->price << std::endl;
+    if (!optCarrier.has_value())
+    {
+        response.set_status_code(web::http::status_codes::NotFound);
+        response.set_body(U("No carriers found"));
+        return response;
+    }
+
+    // 4 Call the model to get the order by ID
+    OrderModel orderModel;
+    auto optOrder = orderModel.getOrderById(user_id, order_id); // Get the order for the specified user and order ID
+    if (!optOrder.has_value())                                  // If no order is found
+    {
+        response.set_status_code(web::http::status_codes::NotFound);
+        response.set_body(U("Order not found"));
+        return response;
+    }
+
+    auto [updCarrierId, errors] = orderModel.updateCarrierId(order_id, carrier_id);
+    if (!updCarrierId)
+    {
+        response.set_status_code(web::http::status_codes::InternalError);
+        response.set_body(U("Failed to update carrier id"));
+        return response;
+    }
+
+    double newTotal = optOrder->total + optCarrier->price;
+    
+    // 5 call updateOrderTotal
+    auto [result, errorsUpdateOrderTotal] = orderModel.updateOrderTotal(order_id, newTotal);
+    if (!result)
+    {
+        response.set_status_code(web::http::status_codes::InternalError);
+        response.set_body(U("Failed to update order total"));
+        return response;
+    }
+
+    // 6. Prepare the JSON response
+    web::json::value json_order;
+    json_order[U("order_id")] = web::json::value::number(order_id);
+    json_order[U("total")] = web::json::value::number(newTotal);
+    json_order[U("update: success")] = web::json::value::boolean(true);
     response.set_body(json_order);
     return response;
 }

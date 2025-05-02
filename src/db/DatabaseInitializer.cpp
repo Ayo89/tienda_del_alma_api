@@ -185,7 +185,6 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "total DECIMAL(10,2) NOT NULL, "
             "shipment_date VARCHAR(100), "
             "delivery_date VARCHAR(100), "
-            "carrier VARCHAR(100), "
             "tracking_number VARCHAR(100), "
             "tracking_url VARCHAR(255), "
             "payment_method VARCHAR(50), "

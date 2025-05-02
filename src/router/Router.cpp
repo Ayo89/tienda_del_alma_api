@@ -93,6 +93,17 @@ void Router::setup_routes()
         {
             response = orderController.getOrderById(request);
         }
+        else if (method == web::http::methods::PUT)
+        {
+            auto path_segments = web::uri::split_path(request.request_uri().path());
+
+            if (path_segments.size() == 4 &&
+                path_segments[0] == U("order") &&
+                path_segments[2] == U("carrier"))
+            {
+                response = orderController.updateTotalbyOrderId(request);
+            }
+        }
 
         //PAYPAL
 
@@ -101,6 +112,14 @@ void Router::setup_routes()
             PaypalController paypalController;
             response = paypalController.createPayment(request);
         }
+
+        //CARRIERS
+        if (method == web::http::methods::GET && path == U("/carriers"))
+        {
+            CarrierController model;
+            response = model.getCarriers(request);
+        }
+
 
         // 🔹 Añadir encabezados CORS
         Server::add_cors_headers(response);

@@ -43,6 +43,7 @@ add_executable(tienda_del_alma
   src/controllers/AddressController.cpp
   src/controllers/OrderController.cpp
   src/controllers/PaypalController.cpp
+  src/controllers/CarrierController.cpp
   src/model/UserModel.cpp
   src/model/ProductModel.cpp
   src/model/AddressModel.cpp

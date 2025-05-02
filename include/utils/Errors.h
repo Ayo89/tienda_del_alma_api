@@ -11,6 +11,8 @@ enum class Errors
     BindParamFailed,
     ExecutionFailed,
     NoRowsAffected,
+    StoreResultFailed,
+    FetchFailed,
     CommitFailed,
     UnknownError
 };

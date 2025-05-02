@@ -14,6 +14,7 @@ http_response PaypalService::createPayment(const std::string &total)
         return http_response(status_codes::InternalError);
     }
 
+    // Generar una clave de identificación unica
     std::string idempotencyKey = UtilsOwner::generateUuid();
 
     // Crear encabezados

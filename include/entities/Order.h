@@ -14,7 +14,7 @@ struct Order
     double total;
     std::string shipment_date;
     std::string delivery_date;
-    std::string carrier;
+    int carrier_id;
     std::string tracking_url;
     std::string tracking_number;
     std::string payment_method;

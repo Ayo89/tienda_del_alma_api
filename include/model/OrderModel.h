@@ -26,7 +26,7 @@ public:
         const std::vector<OrderItem> &products,
         const std::string &shipment_date,
         const std::string &delivery_date,
-        const std::string &carrier,
+        const int &carrier_id,
         const std::string &tracking_url,
         const std::string &tracking_number,
         const std::string &payment_method,
@@ -46,7 +46,7 @@ public:
         const std::vector<OrderItem> &products,
         const std::string &shipment_date,
         const std::string &delivery_date,
-        const std::string &carrier,
+        const int &carrier_id,
         const std::string &tracking_url,
         const std::string &tracking_number,
         const std::string &payment_method,
@@ -60,6 +60,9 @@ public:
         const int &user_id,
         const int &order_id,
         const std::string &status);
+
+    std::pair<bool, Errors> updateOrderTotal(int order_id, double total);
+    std::pair<bool, Errors> updateCarrierId(int order_id, int carrier_id);
 };
 
 #endif
