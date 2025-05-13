@@ -1067,6 +1067,8 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
         char tracking_url[256], tracking_number[64];
         char payment_method[64], payment_status[64], paypal_order_id[64], observations[256];
 
+        bool is_null_paypal_order_id;
+
         result_bind[0].buffer_type = MYSQL_TYPE_LONG;
         result_bind[0].buffer = &id;
         result_bind[0].buffer_length = sizeof(id);
@@ -1126,6 +1128,7 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
         result_bind[14].buffer_type = MYSQL_TYPE_STRING;
         result_bind[14].buffer = paypal_order_id;
         result_bind[14].buffer_length = sizeof(paypal_order_id);
+        result_bind[14].is_null = &is_null_paypal_order_id;
 
         result_bind[15].buffer_type = MYSQL_TYPE_STRING;
         result_bind[15].buffer = observations;
@@ -1142,6 +1145,7 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
             std::cerr << "Fetch failed: " << mysql_stmt_error(stmt) << std::endl;
             throw std::runtime_error("Fetch failed");
         }
+
         Order order;
         order.id = id;
         order.user_id = user_id_query;
@@ -1160,6 +1164,12 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
         order.paypal_order_id = paypal_order_id;
         order.observations = observations;
         // Commit the transaction
+
+        if (is_null_paypal_order_id)
+        {
+            order.paypal_order_id = "";
+        }
+
         mysql_stmt_free_result(stmt);
         if (mysql_query(conn, "COMMIT") != 0)
         {

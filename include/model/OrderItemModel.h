@@ -10,6 +10,7 @@
 #include <memory>
 #include <cstring>
 #include <set>
+#include "utils/Errors.h"
 
 class OrderItemModel
 {
@@ -26,6 +27,7 @@ public:
     std::optional<int> updateOrderItems(const std::vector<OrderItem> &products, int order_id);
     std::optional<int> syncOrderItems(const std::vector<OrderItem> &newItems, int order_id);
     double calculateOrderTotal(const std::vector<OrderItem> &products);
+    std::pair<std::optional<std::vector<OrderItem>>, Errors> getOrderItemsByOrderId(int &order_id);
 };
 
 #endif

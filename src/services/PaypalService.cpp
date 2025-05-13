@@ -44,7 +44,6 @@ http_response PaypalService::createPayment(const std::string &total)
 
     web::json::value amount = web::json::value::object();
     amount[U("currency_code")] = web::json::value::string(U("EUR"));
-    std::cout << "Total: " << total << std::endl;
     amount[U("value")] = web::json::value::string(total);
 
     web::json::value purchase_unit = web::json::value::object();
@@ -68,8 +67,10 @@ http_response PaypalService::createPayment(const std::string &total)
             std::string order_id = utility::conversions::to_utf8string(json[U("id")].as_string());
             web::json::value result = web::json::value::object();
             result[U("orderID")] = web::json::value::string(utility::conversions::to_string_t(order_id));
-            http_response customResponse(status_codes::OK);
             std::cout << json.serialize() << std::endl;
+            result[U("idempotency_key")] = web::json::value::string(idempotencyKey);
+            result[U("status")] = json[U("status")];
+            http_response customResponse(status_codes::OK);
             customResponse.set_body(result);
             return customResponse;
         }

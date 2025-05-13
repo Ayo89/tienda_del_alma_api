@@ -446,3 +446,89 @@ double OrderItemModel::calculateOrderTotal(const std::vector<OrderItem> &product
     return total;
 }
 //---------- END OF CALCULATE ORDER TOTAL ----------
+
+std::pair<std::optional<std::vector<OrderItem>>, Errors> OrderItemModel::getOrderItemsByOrderId(int &order_id)
+{
+
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn)
+    {
+        std::cerr << "Failed to get database connection" << std::endl;
+        return std::make_pair(std::nullopt, Errors::DatabaseConnectionFailed);
+    }
+
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    if (!stmt)
+    {
+        std::cerr << "Failed to initialize statement" << std::endl;
+        return std::make_pair(std::nullopt, Errors::StatementInitFailed);
+    }
+
+    auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+
+    const char *sql = "SELECT id, order_id, product_id, quantity, price FROM order_items WHERE order_id = ?";
+    if (mysql_stmt_prepare(stmt, sql, strlen(sql)) != 0)
+    {
+        std::cerr << "Failed to prepare statement" << std::endl;
+        return std::make_pair(std::nullopt, Errors::StatementPrepareFailed);
+    }
+
+    MYSQL_BIND bind[1];
+    memset(bind, 0, sizeof(bind));
+    bind[0].buffer_type = MYSQL_TYPE_LONG;
+    bind[0].buffer = &order_id;
+
+    if (mysql_stmt_bind_param(stmt, bind) != 0)
+    {
+        std::cerr << "Failed to bind parameters" << std::endl;
+        return std::make_pair(std::nullopt, Errors::BindParamFailed);
+    }
+
+    if (mysql_stmt_execute(stmt) != 0)
+    {
+        std::cerr << "Failed to execute statement" << std::endl;
+        return std::make_pair(std::nullopt, Errors::ExecutionFailed);
+    }
+
+    std::vector<OrderItem> orderItems;
+    MYSQL_BIND result_bind[5];
+    memset(result_bind, 0, sizeof(result_bind));
+
+    int id, db_order_id, product_id, quantity;
+    double price;
+
+    result_bind[0].buffer_type = MYSQL_TYPE_LONG;
+    result_bind[0].buffer = &id;
+
+    result_bind[1].buffer_type = MYSQL_TYPE_LONG;
+    result_bind[1].buffer = &db_order_id;
+
+    result_bind[2].buffer_type = MYSQL_TYPE_LONG;
+    result_bind[2].buffer = &product_id;
+
+    result_bind[3].buffer_type = MYSQL_TYPE_LONG;
+    result_bind[3].buffer = &quantity;
+
+    result_bind[4].buffer_type = MYSQL_TYPE_DOUBLE;
+    result_bind[4].buffer = &price;
+
+    if (mysql_stmt_bind_result(stmt, result_bind) != 0)
+    {
+        std::cerr << "Failed to bind result" << std::endl;
+        return std::make_pair(std::nullopt, Errors::BindResultFailed);
+    }
+
+    while (mysql_stmt_fetch(stmt) == 0)
+    {
+        OrderItem orderItem;
+        orderItem.id = id;
+        orderItem.order_id = db_order_id;
+        orderItem.product_id = product_id;
+        orderItem.quantity = quantity;
+        orderItem.price = price;
+        orderItems.push_back(orderItem);
+    }
+
+    return std::make_pair(std::optional<std::vector<OrderItem>>(orderItems), Errors::NoError);
+}

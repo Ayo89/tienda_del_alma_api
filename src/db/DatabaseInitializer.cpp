@@ -35,6 +35,7 @@ bool DatabaseInitializer::initialize(bool forceInit)
     if (forceInit)
     {
         const char *dropQueries[] = {
+            "DROP TABLE IF EXISTS payment_attempts;",
             "DROP TABLE IF EXISTS order_items;",
             "DROP TABLE IF EXISTS orders;",
             "DROP TABLE IF EXISTS inventory;",
@@ -196,6 +197,23 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "FOREIGN KEY (billing_address_id) REFERENCES billing_addresses(id) ON DELETE CASCADE, "
             "FOREIGN KEY (shipping_address_id) REFERENCES shipping_addresses(id) ON DELETE CASCADE, "
             "FOREIGN KEY (carrier_id) REFERENCES carriers(id) ON DELETE SET NULL"
+            ") ENGINE=InnoDB;";
+    if (!executeQuery(query))
+        return false;
+
+    // Tabla de intentos de pago
+    query = "CREATE TABLE IF NOT EXISTS payment_attempts ("
+            "id INT AUTO_INCREMENT PRIMARY KEY, "
+            "user_id INT NOT NULL, "
+            "order_id INT NOT NULL, "
+            "cart_hash VARCHAR(64) NOT NULL, "
+            "total DECIMAL(10,2) NOT NULL, "
+            "idempotency_key VARCHAR(64) NOT NULL, "
+            "paypal_order_id VARCHAR(100), "
+            "status VARCHAR(50), "
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, "
+            "UNIQUE KEY unique_attempt (user_id, cart_hash)"
             ") ENGINE=InnoDB;";
     if (!executeQuery(query))
         return false;

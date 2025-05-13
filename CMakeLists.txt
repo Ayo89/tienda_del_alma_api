@@ -50,6 +50,7 @@ add_executable(tienda_del_alma
   src/model/OrderModel.cpp
   src/model/OrderItemModel.cpp
   src/model/CarrierModel.cpp
+  src/model/PaymentAttemptModel.cpp
   src/utils/UtilsOwner.cpp
   src/services/PaypalService.cpp
 )

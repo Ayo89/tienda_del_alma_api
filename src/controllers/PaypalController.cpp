@@ -36,6 +36,9 @@ web::http::http_response PaypalController::createPayment(const web::http::http_r
         return response;
     }
     Order order = optOrder.value();
+
+    
+
     if (order.status == "COMPLETED")
     {
         response.set_status_code(web::http::status_codes::BadRequest);
@@ -59,12 +62,43 @@ web::http::http_response PaypalController::createPayment(const web::http::http_r
     }
     try
     {
+        OrderItemModel orderItemModel;
+        // items in the cart
+        auto [items, errors] = orderItemModel.getOrderItemsByOrderId(order_id);
+
+        if (errors != Errors::NoError){
+            response.set_status_code(web::http::status_codes::NotFound);
+            response.set_body(U("Failed to get order items"));
+            return response;
+        }
+       
+        std::string current_cart_hash = items.has_value() ? UtilsOwner::hashCart(items.value()) : "";
+        
         auto paymentResponse = paypalService.createPayment(total);
         auto jsonResponse = paymentResponse.extract_json().get();
 
         std::string storedPaypalId = order.paypal_order_id;
         std::string newPaypalId = utility::conversions::to_utf8string(
             jsonResponse[U("orderID")].as_string());
+        std::string idempotency_key = jsonResponse[U("idempotency_key")].as_string();
+        std::string status = jsonResponse[U("status")].as_string();
+        std::cout << "idempotency_key: " << idempotency_key << std::endl;
+        std::cout << "status: " << status << std::endl;
+        std::cout << "userId: " << user_id << std::endl;
+        std::cout << "cart_hash: " << current_cart_hash << std::endl;
+        std::cout << "total: " << order.total << std::endl;
+        std::cout << "storedPaypalId: " << storedPaypalId << std::endl;
+        std::cout << "newPaypalId: " << newPaypalId << std::endl;
+
+        PaymentAttempModel paymentAttemptModel;
+        auto [paymentAttempt, created] = paymentAttemptModel.createPaymentAttempt(
+            user_id,
+            order_id,
+            current_cart_hash,
+            order.total,
+            idempotency_key,
+            storedPaypalId.empty() ? newPaypalId : storedPaypalId,
+            status);
 
         web::json::value body;
         body[U("status")] = web::json::value::string(U("success"));
@@ -111,6 +145,7 @@ web::http::http_response PaypalController::capturePayment(const web::http::http_
 
     OrderModel model;
     auto optOrder = model.getOrderById(order_id, user_id);
+
 
     if (!optOrder.has_value())
     {

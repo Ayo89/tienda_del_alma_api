@@ -14,5 +14,6 @@ enum class Errors
     StoreResultFailed,
     FetchFailed,
     CommitFailed,
-    UnknownError
+    UnknownError,
+    BindResultFailed
 };
