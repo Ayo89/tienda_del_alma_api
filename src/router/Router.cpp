@@ -106,11 +106,28 @@ void Router::setup_routes()
         }
 
         //PAYPAL
-
-        if (method == web::http::methods::POST && path.find(U("/paypal/")) == 0)
+        PaypalController paypalController;
+        auto segments = web::uri::split_path(request.request_uri().path());
+        
+        if (method == methods::POST && segments.size() == 3 || segments.size() == 4 && segments[0] == U("paypal"))
         {
-            PaypalController paypalController;
-            response = paypalController.createPayment(request);
+            // POST /paypal/{orderId}/create
+            if (segments[2] == U("create"))
+            {
+
+                response = paypalController.createPayment(request);
+            }
+            // POST /paypal/{orderId}/capture
+            
+            else if (segments[2] == U("capture"))
+            {
+                std::cout << "Capturando pago... en router" << std::endl;
+                response = paypalController.capturePayment(request);
+            }
+            else
+            {
+                response = http_response(status_codes::NotFound);
+            }
         }
 
         //CARRIERS

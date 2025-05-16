@@ -4,7 +4,7 @@
 PaypalService::PaypalService()
 {
 }
-http_response PaypalService::createPayment(const std::string &total)
+http_response PaypalService::createPayment(const std::string &total, const std::string &idempotencyKey)
 {
 
     std::string token = getAccessToken();
@@ -15,7 +15,6 @@ http_response PaypalService::createPayment(const std::string &total)
     }
 
     // Generar una clave de identificación unica
-    std::string idempotencyKey = UtilsOwner::generateUuid();
 
     // Crear encabezados
     http_request request(methods::POST);
@@ -67,7 +66,6 @@ http_response PaypalService::createPayment(const std::string &total)
             std::string order_id = utility::conversions::to_utf8string(json[U("id")].as_string());
             web::json::value result = web::json::value::object();
             result[U("orderID")] = web::json::value::string(utility::conversions::to_string_t(order_id));
-            std::cout << json.serialize() << std::endl;
             result[U("idempotency_key")] = web::json::value::string(idempotencyKey);
             result[U("status")] = json[U("status")];
             http_response customResponse(status_codes::OK);
@@ -142,6 +140,7 @@ std::string PaypalService::getAccessToken()
 
 http_response PaypalService::capturePayment(const std::string &orderID)
 {
+    std::cout<<"Capturando pago..."<<std::endl;
     std::string apiBase = "https://api-m.sandbox.paypal.com/v2/checkout/orders/" + orderID + "/capture";
     http_request request(methods::POST);
     request.headers().add(U("Content-Type"), U("application/json"));
@@ -162,10 +161,10 @@ http_response PaypalService::capturePayment(const std::string &orderID)
     http_response response = web::http::client::http_client(apiBase)
                                  .request(request)
                                  .get();
+
     // Comprobar el código de estado de la respuesta
     if (response.status_code() == status_codes::Created || response.status_code() == status_codes::OK)
     {
-        auto json = response.extract_json().get();
         return response;
     }
     else if (response.status_code() == status_codes::Unauthorized)

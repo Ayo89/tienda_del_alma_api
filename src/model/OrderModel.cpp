@@ -549,26 +549,39 @@ std::optional<Order> OrderModel::getPendingOrderByUserId(int &user_id)
     }
     // Fetch the result
     Order order;
-    if (mysql_stmt_fetch(stmt) != 0)
+    int fetch_result = mysql_stmt_fetch(stmt);
+    if (fetch_result == 0)
     {
-        std::cerr << "Fetch failed: " << mysql_stmt_error(stmt) << "\n";
+        // Hay datos: llenar el objeto `Order` y devolverlo
+        Order order;
+        order.id = id;
+        order.user_id = user_id;
+        order.shipping_address_id = shipping_address_id;
+        order.billing_address_id = billing_address_id;
+        order.order_date = order_date;
+        order.status = status;
+        order.total = total;
+        order.shipment_date = ship_date;
+        order.delivery_date = delivery_date;
+        order.carrier_id = carrier_id;
+        order.tracking_url = tracking_url;
+        order.tracking_number = tracking_num;
+        order.payment_method = pay_method;
+        order.payment_status = pay_status;
+        return order;
+    }
+    else if (fetch_result == MYSQL_NO_DATA)
+    {
+        // No se encontró ninguna orden pendiente para ese user_id
+        std::cout << "No pending order found for user_id: " << user_id << std::endl;
         return std::nullopt;
     }
-    order.id = id;
-    order.user_id = user_id;
-    order.shipping_address_id = shipping_address_id;
-    order.billing_address_id = billing_address_id;
-    order.order_date = order_date;
-    order.status = status;
-    order.total = total;
-    order.shipment_date = ship_date;
-    order.delivery_date = delivery_date;
-    order.carrier_id = carrier_id;
-    order.tracking_url = tracking_url;
-    order.tracking_number = tracking_num;
-    order.payment_method = pay_method;
-    order.payment_status = pay_status;
-    return order;
+    else
+    {
+        // Error real
+        std::cerr << "Fetch failed OrderModel::getPendingOrderByUserId: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
 }
 
 std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
@@ -1142,8 +1155,8 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
         }
         if (mysql_stmt_fetch(stmt) != 0)
         {
-            std::cerr << "Fetch failed: " << mysql_stmt_error(stmt) << std::endl;
-            throw std::runtime_error("Fetch failed");
+            std::cerr << "Fetch failed OrderModel -getOrderByID-: " << mysql_stmt_error(stmt) << std::endl;
+            throw std::runtime_error("Fetch failed OrderModel -getOrderByID-");
         }
 
         Order order;
@@ -1436,4 +1449,104 @@ std::pair<bool, Errors> OrderModel::updateCarrierId(int order_id, int carrier_id
     }
 
     return {true, Errors::NoError};
+}
+
+std::pair<std::optional<Order>, Errors> OrderModel::updateOrderStatus(
+    int &user_id,
+    int &order_id,
+    const std::string &status)
+{
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn || mysql_ping(conn) != 0)
+    {
+        std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
+        return {std::nullopt, Errors::DatabaseConnectionFailed};
+    }
+
+    try
+    {
+        // Start transaction
+        if (mysql_query(conn, "START TRANSACTION") != 0)
+        {
+            std::cerr << "Start transaction failed: " << mysql_error(conn) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return {std::nullopt, Errors::TransactionStartFailed};
+        }
+
+        // Update order status
+        const char *query = "UPDATE orders SET status = ? WHERE id = ? AND user_id = ?";
+        MYSQL_STMT *stmt = mysql_stmt_init(conn);
+        if (!stmt)
+        {
+            std::cerr << "Statement init failed: " << mysql_error(conn) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return {std::nullopt, Errors::StatementInitFailed};
+        }
+
+        auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+
+        if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+        {
+            std::cerr << "Statement prepare failed: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return {std::nullopt, Errors::StatementPrepareFailed};
+        }
+
+        MYSQL_BIND param[3];
+        memset(param, 0, sizeof(param));
+        bool is_null[3];
+        unsigned long length[3];
+
+        param[0].buffer_type = MYSQL_TYPE_STRING;
+        param[0].buffer = (char *)status.c_str();
+        param[0].is_null = &is_null[0];
+        param[0].length = &length[0];
+
+        param[1].buffer_type = MYSQL_TYPE_LONG;
+        param[1].buffer = &order_id;
+        param[1].is_null = &is_null[1];
+        param[1].length = &length[1];
+
+        param[2].buffer_type = MYSQL_TYPE_LONG;
+        param[2].buffer = &user_id;
+        param[2].is_null = &is_null[2];
+        param[2].length = &length[2];
+
+        if (mysql_stmt_bind_param(stmt, param) != 0)
+        {
+            std::cerr << "Parameter binding failed in updateOrderStatus: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return {std::nullopt, Errors::BindParamFailed};
+        }
+
+        if (mysql_stmt_execute(stmt) != 0)
+        {
+            std::cerr << "Statement execution failed in updateOrderStatus: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return {std::nullopt, Errors::ExecutionFailed};
+        }
+
+        if (mysql_stmt_affected_rows(stmt) == 0)
+        {
+            std::cerr << "No rows updated in updateOrderStatus: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return {std::nullopt, Errors::NoRowsAffected};
+        }
+
+        if (mysql_query(conn, "COMMIT") != 0)
+        {
+            std::cerr << "Commit failed in updateOrderStatus: " << mysql_error(conn) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return {std::nullopt, Errors::CommitFailed};
+        }
+
+        return {std::nullopt, Errors::NoError};
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Exception caught in updateOrderStatus: " << e.what() << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {std::nullopt, Errors::UnknownError};
+    }
 }

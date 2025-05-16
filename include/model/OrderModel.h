@@ -57,8 +57,8 @@ public:
         const int &order_id,
         const std::string &paypal_order_id);
     std::pair<std::optional<Order>, Errors> updateOrderStatus(
-        const int &user_id,
-        const int &order_id,
+        int &user_id,
+        int &order_id,
         const std::string &status);
 
     std::pair<bool, Errors> updateOrderTotal(int order_id, double total);

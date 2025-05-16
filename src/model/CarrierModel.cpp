@@ -108,7 +108,7 @@ std::pair<std::optional<std::vector<Carrier>>, Errors> CarrierModel::getAllCarri
 
     if (mysql_stmt_fetch(stmt) != 0)
     {
-        std::cerr << "Fetch failed: " << mysql_stmt_error(stmt) << "\n";
+        std::cerr << "Fetch failed in Carrier Model -getAllCarriers- : " << mysql_stmt_error(stmt) << "\n";
         return {std::nullopt, Errors::FetchFailed};
     }
     Carrier carrier;
@@ -203,7 +203,7 @@ std::pair<std::optional<Carrier>, Errors> CarrierModel::getCarrierById(int &id)
 
     if (mysql_stmt_fetch(stmt) != 0)
     {
-        std::cerr << "Fetch failed: " << mysql_stmt_error(stmt) << "\n";
+        std::cerr << "Fetch failed in Carrier Model -getCarrierById- : " << mysql_stmt_error(stmt) << "\n";
         return {std::nullopt, Errors::FetchFailed};
     }
     Carrier carrier;

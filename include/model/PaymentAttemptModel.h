@@ -8,12 +8,22 @@
 #include <memory>
 #include <iostream>
 #include <cstring>
+#include <vector>
+#include "utils/Errors.h"
 
 class PaymentAttempModel
 {
 public:
     PaymentAttempModel() {};
-    std::pair<std::optional<PaymentAttempt>, Errors> createPaymentAttempt(int user_id, int order_id, std::string cart_hash, double total, std::string idempotency_key, std::string paypal_order_id, std::string status);
+    std::pair<std::optional<PaymentAttempt>, Errors> createPaymentAttempt(
+        int user_id,
+        int order_id,
+        std::string cart_hash,
+        double total,
+        std::string idempotency_key,
+        std::string paypal_order_id,
+        std::string status);
+    std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> getPaymentAttemptsByOrderId(int user_id);
 };
 
 #endif
