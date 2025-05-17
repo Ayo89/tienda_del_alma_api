@@ -265,7 +265,8 @@ web::http::http_response OrderController::getOrderById(const web::http::http_req
 
     // 3. Call the model to get the order by ID
     OrderModel model;
-    auto optOrder = model.getOrderById(user_id, order_id); // Get the order for the specified user and order ID
+    std::cout << "order_id: en controlador getorderid " << order_id << std::endl;
+    auto optOrder = model.getOrderById(order_id, user_id); // Get the order for the specified user and order ID
     if (!optOrder.has_value())                             // If no order is found
     {
         response.set_status_code(web::http::status_codes::NotFound);
@@ -276,6 +277,7 @@ web::http::http_response OrderController::getOrderById(const web::http::http_req
     // 4. Prepare the JSON response
     const auto &order = optOrder.value();
     web::json::value json_order;
+    response.set_status_code(web::http::status_codes::OK);
     json_order[U("order_id")] = web::json::value::number(order.id);
     json_order[U("shipping_address_id")] = web::json::value::number(order.shipping_address_id);
     json_order[U("billing_address_id")] = web::json::value::number(order.billing_address_id);
@@ -334,7 +336,7 @@ web::http::http_response OrderController::updateTotalbyOrderId(const web::http::
 
     // 4 Call the model to get the order by ID
     OrderModel orderModel;
-    auto optOrder = orderModel.getOrderById(user_id, order_id); // Get the order for the specified user and order ID
+    auto optOrder = orderModel.getOrderById(order_id, user_id); // Get the order for the specified user and order ID
     if (!optOrder.has_value())                                  // If no order is found
     {
         response.set_status_code(web::http::status_codes::NotFound);

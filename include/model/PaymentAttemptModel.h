@@ -23,7 +23,8 @@ public:
         std::string idempotency_key,
         std::string paypal_order_id,
         std::string status);
-    std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> getPaymentAttemptsByOrderId(int user_id);
+    std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> getPaymentAttemptsByOrderId(int order_id);
+    std::pair<bool, Errors> updatePaymentAttemptStatus(std::string& paypal_order_id, int order_id, int user_id, std::string status);
 };
 
 #endif

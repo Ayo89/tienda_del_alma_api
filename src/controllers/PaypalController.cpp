@@ -171,7 +171,6 @@ web::http::http_response PaypalController::capturePayment(const web::http::http_
     int order_id = std::stoi(order_id_segment);
 
     OrderModel model;
-    std::cout << "order id: " << order_id << " user id: " << user_id << std::endl;
     auto optOrder = model.getOrderById(order_id, user_id);
 
     if (!optOrder.has_value())
@@ -182,22 +181,24 @@ web::http::http_response PaypalController::capturePayment(const web::http::http_
     }
 
     PaypalService paypalService;
+    PaymentAttempModel paymentAttemptModel;
     try
     {
         auto captureResponse = paypalService.capturePayment(order_id_paypal);
         if (captureResponse.status_code() == web::http::status_codes::Created || captureResponse.status_code() == web::http::status_codes::OK)
         {
-
-            orderModel.updateOrderStatus(user_id, order_id, "COMPLETED");
+            orderModel.updateOrderStatus(order_id, user_id, "COMPLETED");
+            paymentAttemptModel.updatePaymentAttemptStatus(order_id_paypal, order_id, user_id, "COMPLETED");
         }
         response.set_status_code(captureResponse.status_code());
         response.set_body(captureResponse.extract_json().get());
+        
     }
     catch (const std::exception &e)
     {
         response.set_status_code(web::http::status_codes::InternalError);
         response.set_body(U("Error processing payment: ") + utility::conversions::to_string_t(e.what()));
     }
-
+    std::cout << response.to_string() << std::endl;
     return response;
 }

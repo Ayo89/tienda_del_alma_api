@@ -182,7 +182,7 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "shipping_address_id INT NOT NULL, "
             "billing_address_id INT NOT NULL, "
             "carrier_id INT, "
-            "status VARCHAR(50) NOT NULL, "
+            "status VARCHAR(100) NOT NULL, "
             "total DECIMAL(10,2) NOT NULL, "
             "shipment_date VARCHAR(100), "
             "delivery_date VARCHAR(100), "
