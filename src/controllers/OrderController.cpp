@@ -344,7 +344,7 @@ web::http::http_response OrderController::updateTotalbyOrderId(const web::http::
         return response;
     }
 
-    auto [updCarrierId, errors] = orderModel.updateCarrierId(order_id, carrier_id);
+    auto [updCarrierId, errUpdateCarrierId] = orderModel.updateCarrierId(order_id, carrier_id);
     if (!updCarrierId)
     {
         response.set_status_code(web::http::status_codes::InternalError);
@@ -352,17 +352,34 @@ web::http::http_response OrderController::updateTotalbyOrderId(const web::http::
         return response;
     }
 
+    if (errUpdateCarrierId == Errors::NoError || errUpdateCarrierId == Errors::NoRowsAffected)
+    {
+        std::cout << "Carrier id updated successfully" << std::endl;
+    }
+
     double newTotal = optOrder->total + optCarrier->price;
 
     // 5 call updateOrderTotal
     auto [result, errorsUpdateOrderTotal] = orderModel.updateOrderTotal(order_id, newTotal);
+
+    if (errorsUpdateOrderTotal == Errors::NoError)
+    {
+        std::cout << "updateOrderTotal: Order total updated successfully" << std::endl;
+    }
+    else if (errorsUpdateOrderTotal == Errors::NoRowsAffected)
+    {
+        std::cout << "updateOrderTotal: No rows affected" << std::endl;
+    }
+
     if (!result)
     {
         response.set_status_code(web::http::status_codes::InternalError);
         response.set_body(U("Failed to update order total"));
         return response;
     }
+
     response.set_status_code(web::http::status_codes::OK);
+
     // 6. Prepare the JSON response
     web::json::value json_order;
     json_order[U("order_id")] = web::json::value::number(order_id);

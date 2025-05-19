@@ -140,7 +140,7 @@ std::string PaypalService::getAccessToken()
 
 http_response PaypalService::capturePayment(const std::string &orderID)
 {
-    std::cout << "Capturando pago..." << std::endl;
+
     std::string apiBase = "https://api-m.sandbox.paypal.com/v2/checkout/orders/" + orderID + "/capture";
     http_request request(methods::POST);
     request.headers().add(U("Content-Type"), U("application/json"));

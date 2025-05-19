@@ -213,6 +213,6 @@ std::pair<std::optional<Carrier>, Errors> CarrierModel::getCarrierById(int &id)
         carrier.name = name;
         carrier.price = price;
     } while (mysql_stmt_fetch(stmt) == 0);
-    std::cout << "Carrier found: " << carrier.name << " " << carrier.price << std::endl;
+
     return {carrier, Errors::NoError};
 }

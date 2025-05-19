@@ -409,7 +409,7 @@ std::optional<std::vector<Order>> OrderModel::getOrdersByUserId(int &user_id)
     return orders;
 }
 
-std::optional<Order> OrderModel::getPendingOrderByUserId(int &user_id)
+std::optional<Order> OrderModel::getPendingOrderByUserId(int user_id)
 {
     // Get database connection
     DatabaseConnection &db = DatabaseConnection::getInstance();
@@ -441,12 +441,11 @@ std::optional<Order> OrderModel::getPendingOrderByUserId(int &user_id)
     }
     // Bind the parameters
     MYSQL_BIND param{};
-    unsigned long length_param{sizeof(user_id)};
     param.buffer_type = MYSQL_TYPE_LONG;
     param.buffer = &user_id;
     param.buffer_length = sizeof(user_id);
-    param.is_null = nullptr;
-    param.length = &length_param;
+    param.is_null = 0;
+
     if (mysql_stmt_bind_param(stmt, &param) != 0)
     {
         std::cerr << "Parameter binding failed: " << mysql_stmt_error(stmt) << std::endl;
@@ -458,115 +457,107 @@ std::optional<Order> OrderModel::getPendingOrderByUserId(int &user_id)
         std::cerr << "Statement execution failed: " << mysql_stmt_error(stmt) << std::endl;
         return std::nullopt;
     }
+
+    if (mysql_stmt_store_result(stmt) != 0)
+    {
+        std::cerr << "Error storing result: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
     // Bind the results
     MYSQL_BIND result_bind[14];
     memset(result_bind, 0, sizeof(result_bind));
     int id, user_id_buffer, shipping_address_id, billing_address_id, carrier_id;
     double total;
-    char order_date[64], status[32];
+    char order_date[64], status[100];
     char ship_date[64], delivery_date[64];
     char tracking_url[128], tracking_num[64];
     char pay_method[64], pay_status[32];
     bool is_null[14]{};
-    unsigned long length[14]{sizeof(id), sizeof(user_id_buffer), sizeof(shipping_address_id), sizeof(billing_address_id), sizeof(carrier_id), sizeof(total), sizeof(order_date), sizeof(status), sizeof(ship_date), sizeof(delivery_date), sizeof(tracking_url), sizeof(tracking_num), sizeof(pay_method), sizeof(pay_status)};
 
     // Columna 0 → id
     result_bind[0].buffer_type = MYSQL_TYPE_LONG;
     result_bind[0].buffer = &id;
     result_bind[0].buffer_length = sizeof(id);
     result_bind[0].is_null = &is_null[0];
-    result_bind[0].length = &length[0];
 
     // Columna 1 → user_id
     result_bind[1].buffer_type = MYSQL_TYPE_LONG;
     result_bind[1].buffer = &user_id_buffer;
     result_bind[1].buffer_length = sizeof(user_id_buffer);
     result_bind[1].is_null = &is_null[1];
-    result_bind[1].length = &length[1];
 
     // Columna 2 → shipping_address_id
     result_bind[2].buffer_type = MYSQL_TYPE_LONG;
     result_bind[2].buffer = &shipping_address_id;
     result_bind[2].buffer_length = sizeof(shipping_address_id);
     result_bind[2].is_null = &is_null[2];
-    result_bind[2].length = &length[2];
 
     // Columna 3 → billing_address_id
     result_bind[3].buffer_type = MYSQL_TYPE_LONG;
     result_bind[3].buffer = &billing_address_id;
     result_bind[3].buffer_length = sizeof(billing_address_id);
     result_bind[3].is_null = &is_null[3];
-    result_bind[3].length = &length[3];
 
     // Columna 4 → order_date
     result_bind[4].buffer_type = MYSQL_TYPE_STRING;
     result_bind[4].buffer = order_date;
     result_bind[4].buffer_length = sizeof(order_date);
     result_bind[4].is_null = &is_null[4];
-    result_bind[4].length = &length[4];
 
     // Columna 5 → status
     result_bind[5].buffer_type = MYSQL_TYPE_STRING;
     result_bind[5].buffer = status;
     result_bind[5].buffer_length = sizeof(status);
     result_bind[5].is_null = &is_null[5];
-    result_bind[5].length = &length[5];
 
     // Columna 6 → total
     result_bind[6].buffer_type = MYSQL_TYPE_DOUBLE;
     result_bind[6].buffer = &total;
     result_bind[6].buffer_length = sizeof(total);
     result_bind[6].is_null = &is_null[6];
-    result_bind[6].length = &length[6];
 
     // Columna 6 → ship_date
     result_bind[7].buffer_type = MYSQL_TYPE_STRING;
     result_bind[7].buffer = ship_date;
     result_bind[7].buffer_length = sizeof(ship_date);
     result_bind[7].is_null = &is_null[7];
-    result_bind[7].length = &length[7];
 
     // Columna 7 → delivery_date
     result_bind[8].buffer_type = MYSQL_TYPE_STRING;
     result_bind[8].buffer = delivery_date;
     result_bind[8].buffer_length = sizeof(delivery_date);
     result_bind[8].is_null = &is_null[8];
-    result_bind[8].length = &length[8];
 
     // Columna 8 → carrier
     result_bind[9].buffer_type = MYSQL_TYPE_LONG;
     result_bind[9].buffer = &carrier_id;
     result_bind[9].buffer_length = sizeof(carrier_id);
     result_bind[9].is_null = &is_null[9];
-    result_bind[9].length = &length[9];
 
     // Columna 9 → tracking_url
     result_bind[10].buffer_type = MYSQL_TYPE_STRING;
     result_bind[10].buffer = tracking_url;
     result_bind[10].buffer_length = sizeof(tracking_url);
     result_bind[10].is_null = &is_null[10];
-    result_bind[10].length = &length[10];
 
     // Columna 10 → tracking_num
     result_bind[11].buffer_type = MYSQL_TYPE_STRING;
     result_bind[11].buffer = tracking_num;
     result_bind[11].buffer_length = sizeof(tracking_num);
     result_bind[11].is_null = &is_null[11];
-    result_bind[11].length = &length[11];
 
     // Columna 11 → pay_method
     result_bind[12].buffer_type = MYSQL_TYPE_STRING;
     result_bind[12].buffer = pay_method;
     result_bind[12].buffer_length = sizeof(pay_method);
     result_bind[12].is_null = &is_null[12];
-    result_bind[12].length = &length[12];
 
     // Columna 13 → pay_status
     result_bind[13].buffer_type = MYSQL_TYPE_STRING;
     result_bind[13].buffer = pay_status;
     result_bind[13].buffer_length = sizeof(pay_status);
     result_bind[13].is_null = &is_null[13];
-    result_bind[13].length = &length[13];
 
     // Bind the result
     if (mysql_stmt_bind_result(stmt, result_bind) != 0)
@@ -577,10 +568,9 @@ std::optional<Order> OrderModel::getPendingOrderByUserId(int &user_id)
     // Fetch the result
     Order order;
     int fetch_result = mysql_stmt_fetch(stmt);
-    if (fetch_result == 0)
+    if (fetch_result == 0 || fetch_result == MYSQL_DATA_TRUNCATED)
     {
         // Hay datos: llenar el objeto `Order` y devolverlo
-        Order order;
         order.id = id;
         order.user_id = user_id;
         order.shipping_address_id = shipping_address_id;
@@ -914,7 +904,7 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
     }
 }
 
-std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
+std::optional<Order> OrderModel::getOrderById(int order_id, int user_id)
 
 // Get database connection
 {
@@ -953,7 +943,7 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
         }
 
         MYSQL_BIND checkParam{};
-        unsigned long length_checkParam[1]{0};
+        unsigned long length_checkParam[1]{};
         checkParam.buffer_type = MYSQL_TYPE_LONG;
         checkParam.buffer = &order_id;
         checkParam.buffer_length = sizeof(order_id);
@@ -1001,12 +991,15 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
 
         // Check if the order exists for this user
         const char *checkUserQuery = "SELECT user_id FROM orders WHERE id = ? and user_id = ?";
+
         MYSQL_STMT *checkUserStmt = mysql_stmt_init(conn);
+
         if (!checkUserStmt)
         {
             std::cerr << "Statement initialization failed in check user: " << mysql_error(conn) << std::endl;
             throw std::runtime_error("Statement initialization failed in check user");
         }
+
         auto checkUserStmtGuard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(checkUserStmt, mysql_stmt_close);
 
         if (mysql_stmt_prepare(checkUserStmt, checkUserQuery, strlen(checkUserQuery)) != 0)
@@ -1014,11 +1007,9 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
             std::cerr << "Statement preparation failed in check user: " << mysql_stmt_error(checkUserStmt) << std::endl;
             throw std::runtime_error("Statement preparation failed in check user");
         }
-        std::cout << "User ID: " << user_id << std::endl;
-        std::cout << "Order ID: " << order_id << std::endl;
+
         // Bind the parameters for the check user query
         MYSQL_BIND checkUserParam[2];
-        unsigned long lengths_checkUser[2]{};
         bool is_null_checkUserParam[2]{};
 
         memset(checkUserParam, 0, sizeof(checkUserParam));
@@ -1026,13 +1017,11 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
         checkUserParam[0].buffer = &order_id;
         checkUserParam[0].buffer_length = sizeof(order_id);
         checkUserParam[0].is_null = &is_null_checkUserParam[0];
-        checkUserParam[0].length = &lengths_checkUser[0];
 
         checkUserParam[1].buffer_type = MYSQL_TYPE_LONG;
         checkUserParam[1].buffer = &user_id;
         checkUserParam[1].buffer_length = sizeof(user_id);
         checkUserParam[1].is_null = &is_null_checkUserParam[1];
-        checkUserParam[1].length = &lengths_checkUser[1];
 
         // Bind the parameters for the check user query
         if (mysql_stmt_bind_param(checkUserStmt, checkUserParam) != 0)
@@ -1045,14 +1034,13 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
 
         // Definir el array de bind para el resultado
         MYSQL_BIND checkUserResult[1]{};
-        unsigned long length_checkUserResult{};
+
         bool is_null_checkUser{};
 
         // Configuramos el tipo de dato y la variable donde se almacenará el resultado
         checkUserResult[0].buffer_type = MYSQL_TYPE_LONG;
         checkUserResult[0].buffer = &fetchedUserId; // Es aquí donde almacenaremos el user_id
         checkUserResult[0].buffer_length = sizeof(fetchedUserId);
-        checkUserResult[0].length = &length_checkUserResult;
         checkUserResult[0].is_null = &is_null_checkUser;
 
         // Bind result to the statement
@@ -1132,11 +1120,11 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
 
         // Bind the parameters
         MYSQL_BIND param{};
-        unsigned long length_param{sizeof(order_id)};
+
         param.buffer_type = MYSQL_TYPE_LONG;
         param.buffer = &order_id;
         param.buffer_length = sizeof(order_id);
-        param.length = &length_param;
+        param.is_null = 0;
 
         if (mysql_stmt_bind_param(stmt, &param) != 0)
         {
@@ -1166,106 +1154,87 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
         char ship_date[64], delivery_date[64];
         char tracking_url[256], tracking_number[64];
         char payment_method[64], payment_status[64], paypal_order_id[64], observations[256];
-        unsigned long length[16]{sizeof(id), sizeof(user_id_query), sizeof(shipping_address_id), sizeof(billing_address_id), sizeof(order_date),
-                                 sizeof(status), sizeof(total), sizeof(ship_date), sizeof(delivery_date), sizeof(carrier_id), sizeof(tracking_url),
-                                 sizeof(tracking_number), sizeof(payment_method), sizeof(payment_status), sizeof(paypal_order_id), sizeof(observations)};
         bool is_null[16]{};
 
         result_bind[0].buffer_type = MYSQL_TYPE_LONG;
         result_bind[0].buffer = &id;
         result_bind[0].buffer_length = sizeof(id);
         result_bind[0].is_null = &is_null[0];
-        result_bind[0].length = &length[0];
 
         result_bind[1].buffer_type = MYSQL_TYPE_LONG;
         result_bind[1].buffer = &user_id_query;
         result_bind[1].buffer_length = sizeof(user_id_query);
         result_bind[1].is_null = &is_null[1];
-        result_bind[1].length = &length[1];
 
         result_bind[2].buffer_type = MYSQL_TYPE_LONG;
         result_bind[2].buffer = &shipping_address_id;
         result_bind[2].buffer_length = sizeof(shipping_address_id);
         result_bind[2].is_null = &is_null[2];
-        result_bind[2].length = &length[2];
 
         result_bind[3].buffer_type = MYSQL_TYPE_LONG;
         result_bind[3].buffer = &billing_address_id;
         result_bind[3].buffer_length = sizeof(billing_address_id);
         result_bind[3].is_null = &is_null[3];
-        result_bind[3].length = &length[3];
 
         result_bind[4].buffer_type = MYSQL_TYPE_STRING;
         result_bind[4].buffer = order_date;
         result_bind[4].buffer_length = sizeof(order_date);
         result_bind[4].is_null = &is_null[4];
-        result_bind[4].length = &length[4];
 
         result_bind[5].buffer_type = MYSQL_TYPE_STRING;
         result_bind[5].buffer = status;
         result_bind[5].buffer_length = sizeof(status);
         result_bind[5].is_null = &is_null[5];
-        result_bind[5].length = &length[5];
 
         result_bind[6].buffer_type = MYSQL_TYPE_DOUBLE;
         result_bind[6].buffer = &total;
         result_bind[6].buffer_length = sizeof(total);
         result_bind[6].is_null = &is_null[6];
-        result_bind[6].length = &length[6];
 
         result_bind[7].buffer_type = MYSQL_TYPE_STRING;
         result_bind[7].buffer = ship_date;
         result_bind[7].buffer_length = sizeof(ship_date);
         result_bind[7].is_null = &is_null[7];
-        result_bind[7].length = &length[7];
 
         result_bind[8].buffer_type = MYSQL_TYPE_STRING;
         result_bind[8].buffer = delivery_date;
         result_bind[8].buffer_length = sizeof(delivery_date);
         result_bind[8].is_null = &is_null[8];
-        result_bind[8].length = &length[8];
 
         result_bind[9].buffer_type = MYSQL_TYPE_LONG;
         result_bind[9].buffer = &carrier_id;
         result_bind[9].buffer_length = sizeof(carrier_id);
         result_bind[9].is_null = &is_null[9];
-        result_bind[9].length = &length[9];
 
         result_bind[10].buffer_type = MYSQL_TYPE_STRING;
         result_bind[10].buffer = tracking_url;
         result_bind[10].buffer_length = sizeof(tracking_url);
         result_bind[10].is_null = &is_null[10];
-        result_bind[10].length = &length[10];
 
         result_bind[11].buffer_type = MYSQL_TYPE_STRING;
         result_bind[11].buffer = tracking_number;
         result_bind[11].buffer_length = sizeof(tracking_number);
         result_bind[11].is_null = &is_null[11];
-        result_bind[11].length = &length[11];
 
         result_bind[12].buffer_type = MYSQL_TYPE_STRING;
         result_bind[12].buffer = payment_method;
         result_bind[12].buffer_length = sizeof(payment_method);
         result_bind[12].is_null = &is_null[12];
-        result_bind[12].length = &length[12];
 
         result_bind[13].buffer_type = MYSQL_TYPE_STRING;
         result_bind[13].buffer = payment_status;
         result_bind[13].buffer_length = sizeof(payment_status);
         result_bind[13].is_null = &is_null[13];
-        result_bind[13].length = &length[13];
 
         result_bind[14].buffer_type = MYSQL_TYPE_STRING;
         result_bind[14].buffer = paypal_order_id;
         result_bind[14].buffer_length = sizeof(paypal_order_id);
         result_bind[14].is_null = &is_null[14];
-        result_bind[14].length = &length[14];
 
         result_bind[15].buffer_type = MYSQL_TYPE_STRING;
         result_bind[15].buffer = observations;
         result_bind[15].buffer_length = sizeof(observations);
         result_bind[15].is_null = &is_null[15];
-        result_bind[15].length = &length[15];
 
         // Bind the result
         if (mysql_stmt_bind_result(stmt, result_bind) != 0)
@@ -1316,6 +1285,12 @@ std::optional<Order> OrderModel::getOrderById(int &order_id, int &user_id)
     {
         mysql_query(conn, "ROLLBACK");
         std::cerr << "Error in getOrderById: " << e.what() << std::endl;
+        return std::nullopt;
+    }
+    catch (...)
+    {
+        mysql_query(conn, "ROLLBACK");
+        std::cerr << "Unknown error in getOrderById" << std::endl;
         return std::nullopt;
     }
     // Get database connection
@@ -1445,10 +1420,13 @@ std::pair<bool, Errors> OrderModel::updateOrderTotal(int order_id, double total)
     }
 
     const char *query = "UPDATE orders SET total = ? WHERE id = ?";
+
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
+
     if (!stmt)
     {
         std::cerr << "Statement init failed in updateOrderTotal: " << mysql_error(conn) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::StatementInitFailed};
     }
 
@@ -1457,35 +1435,35 @@ std::pair<bool, Errors> OrderModel::updateOrderTotal(int order_id, double total)
     if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
     {
         std::cerr << "Statement prepare failed in updateOrderTotal: " << mysql_stmt_error(stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::StatementPrepareFailed};
     }
 
     MYSQL_BIND param[2];
     memset(param, 0, sizeof(param));
     bool is_null[2]{};
-    unsigned long lengths[2]{sizeof(total), sizeof(order_id)};
 
     param[0].buffer_type = MYSQL_TYPE_DOUBLE;
     param[0].buffer = &total;
     param[0].buffer_length = sizeof(total);
     param[0].is_null = &is_null[0];
-    param[0].length = &lengths[0];
 
     param[1].buffer_type = MYSQL_TYPE_LONG;
     param[1].buffer = &order_id;
     param[1].buffer_length = sizeof(order_id);
     param[1].is_null = &is_null[1];
-    param[1].length = &lengths[1];
 
     if (mysql_stmt_bind_param(stmt, param) != 0)
     {
         std::cerr << "Parameter binding failed in updateOrderTotal: " << mysql_stmt_error(stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::BindParamFailed};
     }
 
     if (mysql_stmt_execute(stmt) != 0)
     {
         std::cerr << "Statement execution failed in updateOrderTotal: " << mysql_stmt_error(stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::ExecutionFailed};
     }
 
@@ -1498,6 +1476,7 @@ std::pair<bool, Errors> OrderModel::updateOrderTotal(int order_id, double total)
     if (mysql_query(conn, "COMMIT") != 0)
     {
         std::cerr << "Commit failed in updateOrderTotal: " << mysql_error(conn) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::CommitFailed};
     }
 
@@ -1522,10 +1501,12 @@ std::pair<bool, Errors> OrderModel::updateCarrierId(int order_id, int carrier_id
     }
 
     const char *query = "UPDATE orders SET carrier_id = ? WHERE id = ?";
+
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
     if (!stmt)
     {
         std::cerr << "Statement init failed in updateOrderTotal: " << mysql_error(conn) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::StatementInitFailed};
     }
 
@@ -1534,47 +1515,47 @@ std::pair<bool, Errors> OrderModel::updateCarrierId(int order_id, int carrier_id
     if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
     {
         std::cerr << "Statement prepare failed in updateOrderTotal: " << mysql_stmt_error(stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::StatementPrepareFailed};
     }
 
     MYSQL_BIND param[2];
     memset(param, 0, sizeof(param));
     bool is_null[2] = {false, false};
-    unsigned long length[2] = {sizeof(carrier_id), sizeof(order_id)};
 
     param[0].buffer_type = MYSQL_TYPE_LONG;
     param[0].buffer = &carrier_id;
     param[0].buffer_length = sizeof(carrier_id);
     param[0].is_null = &is_null[0];
-    param[0].length = &length[0];
 
     param[1].buffer_type = MYSQL_TYPE_LONG;
     param[1].buffer = &order_id;
     param[1].buffer_length = sizeof(order_id);
     param[1].is_null = &is_null[1];
-    param[1].length = &length[1];
 
     if (mysql_stmt_bind_param(stmt, param) != 0)
     {
         std::cerr << "Parameter binding failed in updateOrderTotal: " << mysql_stmt_error(stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::BindParamFailed};
     }
 
     if (mysql_stmt_execute(stmt) != 0)
     {
         std::cerr << "Statement execution failed in updateOrderTotal: " << mysql_stmt_error(stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::ExecutionFailed};
     }
 
     if (mysql_stmt_affected_rows(stmt) == 0)
     {
-        std::cerr << "No rows updated in updateOrderTotal: " << mysql_stmt_error(stmt) << std::endl;
         return {true, Errors::NoRowsAffected};
     }
 
     if (mysql_query(conn, "COMMIT") != 0)
     {
         std::cerr << "Commit failed in updateOrderTotal: " << mysql_error(conn) << std::endl;
+        mysql_query(conn, "ROLLBACK");
         return {false, Errors::CommitFailed};
     }
 
@@ -1582,8 +1563,8 @@ std::pair<bool, Errors> OrderModel::updateCarrierId(int order_id, int carrier_id
 }
 
 std::pair<std::optional<Order>, Errors> OrderModel::updateOrderStatus(
-    int &user_id,
-    int &order_id,
+    int user_id,
+    int order_id,
     const std::string &status)
 {
     DatabaseConnection &db = DatabaseConnection::getInstance();
@@ -1593,14 +1574,14 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrderStatus(
         std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
         return {std::nullopt, Errors::DatabaseConnectionFailed};
     }
-    std::cout << user_id << " " << order_id << " " << status << std::endl;
+
     try
     {
         // Start transaction
         if (mysql_query(conn, "START TRANSACTION") != 0)
         {
             std::cerr << "Start transaction failed: " << mysql_error(conn) << std::endl;
-            mysql_query(conn, "ROLLBACK");
+
             return {std::nullopt, Errors::TransactionStartFailed};
         }
 
@@ -1622,29 +1603,24 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrderStatus(
             mysql_query(conn, "ROLLBACK");
             return {std::nullopt, Errors::StatementPrepareFailed};
         }
-        std::cout << status << std::endl;
+
         MYSQL_BIND param[3];
         memset(param, 0, sizeof(param));
         bool is_null[3]{};
-        unsigned long length[3]{status.length(), sizeof(order_id), sizeof(user_id)};
-
         param[0].buffer_type = MYSQL_TYPE_STRING;
         param[0].buffer = (char *)status.c_str();
         param[0].buffer_length = status.length();
         param[0].is_null = &is_null[0];
-        param[0].length = &length[0];
 
         param[1].buffer_type = MYSQL_TYPE_LONG;
         param[1].buffer = &order_id;
         param[1].buffer_length = sizeof(order_id);
         param[1].is_null = &is_null[1];
-        param[1].length = &length[1];
 
         param[2].buffer_type = MYSQL_TYPE_LONG;
         param[2].buffer = &user_id;
         param[2].buffer_length = sizeof(user_id);
         param[2].is_null = &is_null[2];
-        param[2].length = &length[2];
 
         if (mysql_stmt_bind_param(stmt, param) != 0)
         {
@@ -1679,6 +1655,12 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrderStatus(
     catch (const std::exception &e)
     {
         std::cerr << "Exception caught in updateOrderStatus: " << e.what() << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {std::nullopt, Errors::UnknownError};
+    }
+    catch (...)
+    {
+        std::cerr << "Unknown exception caught in updateOrderStatus" << std::endl;
         mysql_query(conn, "ROLLBACK");
         return {std::nullopt, Errors::UnknownError};
     }

@@ -17,6 +17,6 @@ public:
     static auto roundToTwoDecimal(double value) -> double;
     static auto toString2Dec(double value) -> std::string;
     static auto generateUuid() -> std::string;
-    static std::string hashCart(const std::vector<OrderItem> &items);
+    static std::string hashCart(int order_id, double total, const std::vector<OrderItem> &items);
 };
 #endif // UTILSSOWNER_H

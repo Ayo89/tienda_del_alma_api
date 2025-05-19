@@ -47,14 +47,31 @@ auto UtilsOwner::generateUuid() -> std::string
 
 
 // sha cart start
-static std::string serializeCart(const std::vector<OrderItem> &items)
+static std::string serializeCart(int order_id, double total, const std::vector<OrderItem> &items)
 {
+    // Copiamos y ordenamos para que el hash no dependa del orden original
+    std::vector<OrderItem> sorted = items;
+    std::sort(sorted.begin(), sorted.end(),
+              [](const OrderItem &a, const OrderItem &b)
+              {
+                  return a.product_id < b.product_id;
+              });
+
     std::ostringstream oss;
-    for (const auto &it : items)
+    // Serializar order_id y total (2 decimales)
+    oss << order_id << ':'
+        << std::fixed << std::setprecision(2) << total
+        << ':';
+
+    // Serializar cada ítem en formato "product_id:quantity:price;"
+    for (const auto &it : sorted)
     {
-        // Formato: "id:qty:price;"
-        oss << it.product_id << ':' << it.quantity << ':' << std::fixed << std::setprecision(2) << it.price << ';';
+        oss << it.product_id << ':'
+            << it.quantity << ':'
+            << std::fixed << std::setprecision(2) << it.price
+            << ';';
     }
+
     return oss.str();
 }
 
@@ -76,9 +93,9 @@ static std::string sha256(const std::string &data)
 }
 
 // Función pública que obtiene el hash del carrito
-std::string UtilsOwner::hashCart(const std::vector<OrderItem> &items)
+std::string UtilsOwner::hashCart(int order_id, double total, const std::vector<OrderItem> &items)
 {
-    std::string serialized = serializeCart(items);
+    std::string serialized = serializeCart(order_id, total, items);
     return sha256(serialized);
 }
 

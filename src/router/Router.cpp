@@ -121,7 +121,7 @@ void Router::setup_routes()
             
             else if (segments[2] == U("capture"))
             {
-                std::cout << "Capturando pago... en router" << std::endl;
+
                 response = paypalController.capturePayment(request);
             }
             else

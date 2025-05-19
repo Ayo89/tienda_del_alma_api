@@ -142,52 +142,54 @@ std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> PaymentAttempModel
     char paypal_order_buf[256];
     char status_buf[64];
     bool is_null[8];
-    unsigned long length[8];
 
     // id
     result_bind[0].buffer_type = MYSQL_TYPE_LONG;
     result_bind[0].buffer = &id;
+    result_bind[0].buffer_length = sizeof(id);
     result_bind[0].is_null = &is_null[0];
-    result_bind[0].length = &length[0];
+
     // user_id
     result_bind[1].buffer_type = MYSQL_TYPE_LONG;
     result_bind[1].buffer = &user_id_buf;
+    result_bind[1].buffer_length = sizeof(user_id_buf);
     result_bind[1].is_null = &is_null[1];
-    result_bind[1].length = &length[1];
+
     // order_id
     result_bind[2].buffer_type = MYSQL_TYPE_LONG;
     result_bind[2].buffer = &order_id_buf;
+    result_bind[2].buffer_length = sizeof(order_id_buf);
     result_bind[2].is_null = &is_null[2];
-    result_bind[2].length = &length[2];
+
     // cart_hash
     result_bind[3].buffer_type = MYSQL_TYPE_STRING;
     result_bind[3].buffer = cart_hash_buf;
     result_bind[3].buffer_length = sizeof(cart_hash_buf);
     result_bind[3].is_null = &is_null[3];
-    result_bind[3].length = &length[3];
+
     // total
     result_bind[4].buffer_type = MYSQL_TYPE_DOUBLE;
     result_bind[4].buffer = &total;
+    result_bind[4].buffer_length = sizeof(total);
     result_bind[4].is_null = &is_null[4];
-    result_bind[4].length = &length[4];
+
     // idempotency_key
     result_bind[5].buffer_type = MYSQL_TYPE_STRING;
     result_bind[5].buffer = idemp_key_buf;
     result_bind[5].buffer_length = sizeof(idemp_key_buf);
     result_bind[5].is_null = &is_null[5];
-    result_bind[5].length = &length[5];
+
     // paypal_order_id
     result_bind[6].buffer_type = MYSQL_TYPE_STRING;
     result_bind[6].buffer = paypal_order_buf;
     result_bind[6].buffer_length = sizeof(paypal_order_buf);
     result_bind[6].is_null = &is_null[6];
-    result_bind[6].length = &length[6];
+
     // status
     result_bind[7].buffer_type = MYSQL_TYPE_STRING;
     result_bind[7].buffer = status_buf;
     result_bind[7].buffer_length = sizeof(status_buf);
     result_bind[7].is_null = &is_null[7];
-    result_bind[7].length = &length[7];
 
     if (mysql_stmt_bind_result(stmt, result_bind) != 0)
     {
@@ -222,82 +224,114 @@ std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> PaymentAttempModel
         p.id = id;
         p.user_id = user_id_buf;
         p.order_id = order_id_buf;
-        p.cart_hash = std::string(cart_hash_buf, length[3]);
+        p.cart_hash = std::string(cart_hash_buf, sizeof(cart_hash_buf));
         p.total = total;
-        p.idempotency_key = std::string(idemp_key_buf, length[5]);
-        p.paypal_order_id = std::string(paypal_order_buf, length[6]);
-        p.status = std::string(status_buf, length[7]);
+        p.idempotency_key = std::string(idemp_key_buf, sizeof(idemp_key_buf));
+        p.paypal_order_id = std::string(paypal_order_buf, sizeof(paypal_order_buf));
+        p.status = std::string(status_buf, sizeof(status_buf));
         attempts.push_back(std::move(p));
     }
 
     return {attempts, Errors::NoError};
 }
 
-std::pair<bool, Errors> PaymentAttempModel::updatePaymentAttemptStatus(std::string &paypal_order_id, int order_id, int user_id, std::string status)
+std::pair<bool, Errors> PaymentAttempModel::updatePaymentAttemptStatus(std::string &paypal_order_id, int order_id, int user_id, const std::string &status)
 {
     DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
-    if (!conn)
+    if (!conn || mysql_ping(conn) != 0)
     {
         std::cerr << "Failed to get database connection" << std::endl;
         return std::make_pair(false, Errors::DatabaseConnectionFailed);
     }
 
-    const char *query = "UPDATE payment_attempts SET status = ? WHERE paypal_order_id = ? AND order_id = ? AND user_id = ? ";
-    MYSQL_STMT *stmt = mysql_stmt_init(conn);
-    if (!stmt)
+    try
     {
-        std::cerr << "Failed to initialize statement" << std::endl;
-        return std::make_pair(false, Errors::StatementInitFailed);
+        if (mysql_query(conn, "START TRANSACTION") != 0)
+        {
+            std::cerr << "Failed to start transaction" << std::endl;
+            return std::make_pair(false, Errors::TransactionStartFailed);
+        }
+
+        const char *query = "UPDATE payment_attempts SET status = ? WHERE paypal_order_id = ? AND order_id = ? AND user_id = ? ";
+
+        MYSQL_STMT *stmt = mysql_stmt_init(conn);
+        if (!stmt)
+        {
+            std::cerr << "Failed to initialize statement" << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return std::make_pair(false, Errors::StatementInitFailed);
+        }
+
+        auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+
+        if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+        {
+            std::cerr << "Failed to prepare statement: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return std::make_pair(false, Errors::StatementPrepareFailed);
+        }
+
+        MYSQL_BIND bind[4];
+        memset(bind, 0, sizeof(bind));
+
+        unsigned long status_len = status.size();
+        unsigned long paypal_order_id_len = paypal_order_id.size();
+        bind[0].buffer_type = MYSQL_TYPE_STRING;
+        bind[0].buffer = (char *)status.c_str();
+        bind[0].buffer_length = status_len;
+        bind[0].length = &status_len;
+
+        bind[1].buffer_type = MYSQL_TYPE_STRING;
+        bind[1].buffer = (char *)paypal_order_id.c_str();
+        bind[1].buffer_length = paypal_order_id_len;
+        bind[1].length = &paypal_order_id_len;
+
+        bind[2].buffer_type = MYSQL_TYPE_LONG;
+        bind[2].buffer = (char *)&order_id;
+        bind[2].buffer_length = sizeof(order_id);
+
+        bind[3].buffer_type = MYSQL_TYPE_LONG;
+        bind[3].buffer = (char *)&user_id;
+        bind[3].buffer_length = sizeof(user_id);
+
+        if (mysql_stmt_bind_param(stmt, bind) != 0)
+        {
+            std::cerr << "Failed to bind parameters in updatePaymentAttemptStatus: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return std::make_pair(false, Errors::BindParamFailed);
+        }
+
+        if (mysql_stmt_execute(stmt) != 0)
+        {
+            std::cerr << "Failed to execute statement in updatePaymentAttemptStatus: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return std::make_pair(false, Errors::ExecutionFailed);
+        }
+
+        if (mysql_stmt_affected_rows(stmt) == 0)
+        {
+            return std::make_pair(true, Errors::NoRowsAffected);
+        }
+
+        if (mysql_query(conn, "COMMIT") != 0)
+        {
+            std::cerr << "Failed to commit transaction in updatePaymentAttemptStatus: " << mysql_error(conn) << std::endl;
+            return {false, Errors::CommitFailed};
+        }
+
+        return std::make_pair(true, Errors::NoError);
     }
-
-    auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
-
-    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    catch (const std::exception &e)
     {
-        std::cerr << "Failed to prepare statement: " << mysql_stmt_error(stmt) << std::endl;
-        return std::make_pair(false, Errors::StatementPrepareFailed);
+        std::cerr << "Error: " << e.what() << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return std::make_pair(false, Errors::UnknownError);
     }
-
-    MYSQL_BIND bind[4];
-    memset(bind, 0, sizeof(bind));
-
-    unsigned long status_len = status.size();
-    unsigned long paypal_order_id_len = paypal_order_id.size();
-
-    bind[0].buffer_type = MYSQL_TYPE_STRING;
-    bind[0].buffer = (char *)status.c_str();
-    bind[0].buffer_length = status_len;
-    bind[0].length = &status_len;
-
-    bind[1].buffer_type = MYSQL_TYPE_STRING;
-    bind[1].buffer = (char *)paypal_order_id.c_str();
-    bind[1].buffer_length = paypal_order_id_len;
-    bind[1].length = &paypal_order_id_len;
-
-    bind[2].buffer_type = MYSQL_TYPE_LONG;
-    bind[2].buffer = (char *)&order_id;
-    bind[2].buffer_length = sizeof(order_id);
-
-    bind[3].buffer_type = MYSQL_TYPE_LONG;
-    bind[3].buffer = (char *)&user_id;
-    bind[3].buffer_length = sizeof(user_id);
-
-    if (mysql_stmt_bind_param(stmt, bind) != 0)
+    catch (...)
     {
-        std::cerr << "Failed to bind parameters: " << mysql_stmt_error(stmt) << std::endl;
-        return std::make_pair(false, Errors::BindParamFailed);
+        std::cerr << "Unknown error" << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return std::make_pair(false, Errors::UnknownError);
     }
-
-    if (mysql_stmt_execute(stmt) != 0)
-    {
-        std::cerr << "Failed to execute statement: " << mysql_stmt_error(stmt) << std::endl;
-        return std::make_pair(false, Errors::ExecutionFailed);
-    }
-
-    if (mysql_affected_rows(conn) == 0)
-    {
-        return std::make_pair(false, Errors::NoRowsAffected);
-    }
-    return std::make_pair(true, Errors::NoError);
 }

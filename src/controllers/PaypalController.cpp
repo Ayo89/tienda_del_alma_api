@@ -75,7 +75,8 @@ web::http::http_response PaypalController::createPayment(const web::http::http_r
         PaymentAttempModel paymentAttemptModel;
         auto [paymentAttemptsOpt, paymentAttemptsError] = paymentAttemptModel.getPaymentAttemptsByOrderId(order_id);
 
-        std::string current_cart_hash = items.has_value() ? UtilsOwner::hashCart(items.value()) : "";
+        
+        std::string current_cart_hash = items.has_value() ? UtilsOwner::hashCart(order.id, order.total, items.value()) : "";
         std::string idempotencyKey = UtilsOwner::generateUuid(); // Default to new
         bool shouldCreateNewAttempt = true;
 
@@ -88,7 +89,7 @@ web::http::http_response PaypalController::createPayment(const web::http::http_r
             matching.reserve(attempts.size());
             for (const auto &att : attempts)
             {
-                if (att.cart_hash == current_cart_hash)
+                if (att.cart_hash == current_cart_hash )
                 {
                     matching.push_back(std::cref(att));
                 }
@@ -105,7 +106,7 @@ web::http::http_response PaypalController::createPayment(const web::http::http_r
 
         auto paymentResponse = paypalService.createPayment(total, idempotencyKey);
         auto jsonResponse = paymentResponse.extract_json().get();
-        std::cout << "current_cart_hash: " << current_cart_hash << std::endl;
+
         std::string storedPaypalId = order.paypal_order_id;
         std::string newPaypalId = utility::conversions::to_utf8string(
             jsonResponse[U("orderID")].as_string());
@@ -146,7 +147,7 @@ web::http::http_response PaypalController::createPayment(const web::http::http_r
 
 web::http::http_response PaypalController::capturePayment(const web::http::http_request &request)
 {
-    std::cout << "entrando en capture payment" << std::endl;
+
     web::http::http_response response;
 
     std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
@@ -170,8 +171,8 @@ web::http::http_response PaypalController::capturePayment(const web::http::http_
     }
     int order_id = std::stoi(order_id_segment);
 
-    OrderModel model;
-    auto optOrder = model.getOrderById(order_id, user_id);
+
+    auto optOrder = orderModel.getOrderById(order_id, user_id);
 
     if (!optOrder.has_value())
     {
@@ -187,18 +188,35 @@ web::http::http_response PaypalController::capturePayment(const web::http::http_
         auto captureResponse = paypalService.capturePayment(order_id_paypal);
         if (captureResponse.status_code() == web::http::status_codes::Created || captureResponse.status_code() == web::http::status_codes::OK)
         {
-            orderModel.updateOrderStatus(order_id, user_id, "COMPLETED");
-            paymentAttemptModel.updatePaymentAttemptStatus(order_id_paypal, order_id, user_id, "COMPLETED");
+            auto [orderStatusUpdated, errUpdateOrderStatus] = orderModel.updateOrderStatus(user_id, order_id, "COMPLETED");
+            if (errUpdateOrderStatus == Errors::NoError)
+            {
+                std::cout << "orderStatusUpdated: success" << std::endl;
+            }
+            else if (errUpdateOrderStatus == Errors::NoRowsAffected)
+            {
+                std::cout << "orderStatusUpdated: no rows affected" << std::endl;
+            }
+
+            auto [paymentAttempStatusUpdated, errUpdatePaymentAttemptStatus] = paymentAttemptModel.updatePaymentAttemptStatus(order_id_paypal, order_id, user_id, "COMPLETED");
+
+            if (errUpdatePaymentAttemptStatus == Errors::NoError)
+            {
+                std::cout << "paymentAttempStatusUpdated: success" << std::endl;
+            }
+            else if (errUpdatePaymentAttemptStatus == Errors::NoRowsAffected)
+            {
+                std::cout << "paymentAttempStatusUpdated: no rows affected" << std::endl;
+            }
         }
         response.set_status_code(captureResponse.status_code());
         response.set_body(captureResponse.extract_json().get());
-        
     }
     catch (const std::exception &e)
     {
         response.set_status_code(web::http::status_codes::InternalError);
         response.set_body(U("Error processing payment: ") + utility::conversions::to_string_t(e.what()));
     }
-    std::cout << response.to_string() << std::endl;
+
     return response;
 }

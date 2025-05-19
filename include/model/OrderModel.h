@@ -34,9 +34,9 @@ public:
 
     std::optional<std::vector<Order>> getOrdersByUserId(int &user_id);
 
-    std::optional<Order> getPendingOrderByUserId(int &user_id);
+    std::optional<Order> getPendingOrderByUserId(int user_id);
 
-    std::optional<Order> getOrderById(int &order_id, int &user_id);
+    std::optional<Order> getOrderById(int order_id, int user_id);
 
     std::pair<std::optional<Order>, Errors> updateOrder(
         const int &user_id,
@@ -57,8 +57,8 @@ public:
         const int &order_id,
         const std::string &paypal_order_id);
     std::pair<std::optional<Order>, Errors> updateOrderStatus(
-        int &user_id,
-        int &order_id,
+        int user_id,
+        int order_id,
         const std::string &status);
 
     std::pair<bool, Errors> updateOrderTotal(int order_id, double total);

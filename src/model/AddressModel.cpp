@@ -636,8 +636,8 @@ std::optional<Address> AddressModel::getAddressById(const int &address_id, const
     char first_name[255], last_name[255], phone[50], street[255], city[100], province[100], postal_code[20], country[100], additional_info[1000], created_at[100];
     char is_default;
 
-    unsigned long len[12];
-    bool is_null[12];
+    unsigned long len[12]{};
+    bool is_null[12]{};
     // id
     result[0].buffer_type = MYSQL_TYPE_LONG;
     result[0].buffer = &id;
@@ -733,7 +733,7 @@ std::optional<Address> AddressModel::getAddressById(const int &address_id, const
     }
     else if (fetch_result == MYSQL_NO_DATA)
     {
-        std::cerr << "⚠️ No se encontró la dirección con ID: " << address_id << " para el user_id: " << user_id << std::endl;
+        std::cerr << "⚠️ Don't exist address with id: " << address_id << " for user: " << user_id << std::endl;
         return std::nullopt;
     }
     else
@@ -741,7 +741,7 @@ std::optional<Address> AddressModel::getAddressById(const int &address_id, const
         std::cerr << "❌ Error en mysql_stmt_fetch: " << mysql_stmt_error(stmt) << std::endl;
         return std::nullopt;
     }
-    std::cout << "Dirección encontrada: " << address.id << std::endl;
+    std::cout << "Address found: " << address.id << std::endl;
 
     return address;
 }
