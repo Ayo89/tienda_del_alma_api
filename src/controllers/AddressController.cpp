@@ -210,11 +210,10 @@ web::http::http_response AddressController::updateAddress(const web::http::http_
         std::string province = utility::conversions::to_utf8string(body[U("province")].as_string());
         std::string postal_code = utility::conversions::to_utf8string(body[U("postal_code")].as_string());
         std::string country = utility::conversions::to_utf8string(body[U("country")].as_string());
-        bool is_default = body[U("is_default")].as_bool();
         std::string additional_info = utility::conversions::to_utf8string(body[U("additional_info")].as_string());
 
         // 6. Execute updateAddress method
-        auto result = model.updateAddress(
+        auto [result_updateAddress, error_updateAddress] = model.updateAddress(
             std::stoi(user_id.value()),
             address_id,
             first_name,
@@ -225,16 +224,27 @@ web::http::http_response AddressController::updateAddress(const web::http::http_
             province,
             postal_code,
             country,
-            is_default,
             type,
             additional_info);
 
         // 7. Verify if the address was updated successfully
-        if (!result.has_value())
+        if (result_updateAddress.has_value())
         {
-            response.set_status_code(web::http::status_codes::InternalError);
-            response.set_body(U("Failed to update address"));
-            return response;
+            if (result_updateAddress.value())
+            {
+                std::cout << "✅ Address updated successfully" << std::endl;
+            }
+            else if (error_updateAddress == Errors::NoRowsAffected)
+            {
+                std::cout << "⚠️ No rows affected" << std::endl;
+            }
+            else
+            {
+                std::cout << "❌ Address not updated" << std::endl;
+                response.set_status_code(web::http::status_codes::InternalError);
+                response.set_body(U("Failed to update address"));
+                return response;
+            }
         }
 
         // 8. Responder con éxito
@@ -276,8 +286,7 @@ web::http::http_response AddressController::deleteAddress(const web::http::http_
     {
         type = it->second;
     }
-    AddressModel AddressModel;
-    auto allAddressesOpt = AddressModel.getAllAddressByUserId(user_id_int);
+    auto allAddressesOpt = model.getAllAddressByUserId(user_id_int);
 
     if (!allAddressesOpt.has_value())
     {
@@ -325,4 +334,55 @@ web::http::http_response AddressController::deleteAddress(const web::http::http_
     response.set_status_code(web::http::status_codes::OK);
     response.set_body(U("Address deleted successfully"));
     return response;
+}
+
+web::http::http_response AddressController::setDefaultAddressController(const web::http::http_request &request)
+{
+    web::http::http_response response;
+
+    // 1. Obtainer user_id from token (from cookies)
+    std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
+    if (!user_id.has_value())
+    {
+        response.set_status_code(web::http::status_codes::Unauthorized);
+        response.set_body(U("Invalid Token or Expired"));
+        return response;
+    }
+    // 2. Obtainer address_id from params
+    auto path = web::uri::split_path(request.request_uri().path());
+    if (path.size() < 4)
+    {
+        response.set_status_code(web::http::status_codes::BadRequest);
+        response.set_body(U("Invalid URL"));
+        return response;
+    }
+
+    std::string type = path[2];
+    int address_id = std::stoi(path[3]);
+
+    // 4. Execute setDefaultAddress method
+    auto [result, error] = model.setDefaultAddress(std::stoi(user_id.value()), address_id, type);
+
+    // 5. Verify if the address was set as default successfully
+    if (result.has_value() && result.value() || error == Errors::NoError)
+    {
+        std::cout << "✅ Address set as default successfully" << std::endl;
+        response.set_status_code(web::http::status_codes::OK);
+        response.set_body(U("Address set as default successfully"));
+        return response;
+    }
+    else if (error == Errors::NoRowsAffected)
+    {
+        std::cout << "⚠️ No rows affected" << std::endl;
+        response.set_status_code(web::http::status_codes::OK);
+        response.set_body(U("no rows affected"));
+        return response;
+    }
+    else
+    {
+        std::cout << "❌ Failed to set address as default" << std::endl;
+        response.set_status_code(web::http::status_codes::InternalError);
+        response.set_body(U("Failed to set address as default"));
+        return response;
+    }
 }

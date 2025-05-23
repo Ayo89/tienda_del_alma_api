@@ -35,10 +35,7 @@ void Router::setup_routes()
         {
             response = authController.login(request);
         }
-        else if (method == web::http::methods::GET && path == U("/users"))
-        {
-            
-        }
+
 
 
         //PRODUCTS
@@ -50,8 +47,8 @@ void Router::setup_routes()
         }
 
         // SHIPPING ADDRESS
-
-      if(method == web::http::methods::GET && path == U("/address"))
+        auto segments_addresses = web::uri::split_path(request.request_uri().path());
+        if (method == web::http::methods::GET && path == U("/address"))
         {
             
             response = addressController.getAddressesByUserId(request);
@@ -66,6 +63,12 @@ void Router::setup_routes()
             
             response = addressController.createAddress(request);
         }
+        else if (method == web::http::methods::PUT && path.find(U("/address/default")) != std::string::npos)
+        {
+            
+            response = addressController.setDefaultAddressController(request);
+        }
+        
         else if(method == web::http::methods::PUT && path.find(U("/address")) != std::string::npos)
         {
             

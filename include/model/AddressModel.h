@@ -7,6 +7,7 @@
 #include "entities/Address.h"
 #include "db/DatabaseConnection.h"
 #include "db/DatabaseInitializer.h"
+#include "utils/Errors.h"
 
 class AddressModel
 {
@@ -31,7 +32,7 @@ public:
 
     std::optional<Address> getAddressById(const int &address_id, const int &user_id, const std::string &type = "");
 
-    std::optional<int> updateAddress(
+   std::pair<std::optional<bool>, Errors> updateAddress(
         const int &user_id,
         const int &address_id,
         const std::string &first_name,
@@ -42,7 +43,6 @@ public:
         const std::string &province,
         const std::string &postal_code,
         const std::string &country,
-        const bool &is_default = false,
         const std::string &type = "",
         const std::string &additional_info = "");
 
@@ -50,6 +50,8 @@ public:
         const int &user_id,
         const int &address_id,
         const std::string &type);
+
+    std::pair<std::optional<bool>, Errors> setDefaultAddress(const int user_id, const int address_id, std::string &type);
 };
 
 #endif

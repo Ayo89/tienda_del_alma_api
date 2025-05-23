@@ -23,6 +23,7 @@ public:
     web::http::http_response getAddressById(const web::http::http_request &request);
     web::http::http_response updateAddress(const web::http::http_request &request);
     web::http::http_response deleteAddress(const web::http::http_request &request);
+    web::http::http_response setDefaultAddressController(const web::http::http_request &request);
 };
 
 #endif

@@ -61,13 +61,13 @@ std::pair<std::optional<PaymentAttempt>, Errors> PaymentAttempModel::createPayme
 
     if (mysql_stmt_bind_param(stmt, bind) != 0)
     {
-        std::cerr << "Failed to bind parameters: " << mysql_error(conn) << std::endl;
+        std::cerr << "Failed to bind parameters in createPaymentAttempt: " << mysql_error(conn) << std::endl;
         return std::make_pair(std::nullopt, Errors::BindParamFailed);
     }
 
     if (mysql_stmt_execute(stmt) != 0)
     {
-        std::cerr << "Failed to execute statement: " << mysql_error(conn) << std::endl;
+        std::cerr << "Failed to execute statement in createPaymentAttemp: " << mysql_error(conn) << std::endl;
         return std::make_pair(std::nullopt, Errors::ExecutionFailed);
     }
 

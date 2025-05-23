@@ -409,7 +409,7 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
 
     return addresses;
 } //---------------->>GET ADDRESS BY ID<<------------------//
-std::optional<int> AddressModel::updateAddress(
+std::pair<std::optional<bool>, Errors> AddressModel::updateAddress(
     const int &user_id,
     const int &address_id,
     const std::string &first_name,
@@ -420,7 +420,6 @@ std::optional<int> AddressModel::updateAddress(
     const std::string &province,
     const std::string &postal_code,
     const std::string &country,
-    const bool &is_default,
     const std::string &type,
     const std::string &additional_info)
 {
@@ -430,7 +429,13 @@ std::optional<int> AddressModel::updateAddress(
     if (!conn || mysql_ping(conn) != 0)
     {
         fprintf(stderr, "Error: No active database connection: %s\n", mysql_error(conn));
-        return std::nullopt;
+        return {std::nullopt, Errors::DatabaseConnectionFailed};
+    }
+
+    if (mysql_query(conn, "START TRANSACTION") != 0)
+    {
+        fprintf(stderr, "Error starting transaction: %s\n", mysql_error(conn));
+        return {std::nullopt, Errors::TransactionStartFailed};
     }
 
     const char *query = nullptr;
@@ -439,14 +444,14 @@ std::optional<int> AddressModel::updateAddress(
     {
         query =
             "UPDATE billing_addresses "
-            "SET first_name = ?, last_name = ?, phone = ?, street = ?, city = ?, province = ?, postal_code = ?, country = ?, is_default = ?, additional_info = ? "
+            "SET first_name = ?, last_name = ?, phone = ?, street = ?, city = ?, province = ?, postal_code = ?, country = ?, additional_info = ? "
             "WHERE id = ? AND user_id = ?";
     }
     else
     {
         query =
             "UPDATE shipping_addresses "
-            "SET first_name = ?, last_name = ?, phone = ?, street = ?, city = ?, province = ?, postal_code = ?, country = ?, is_default = ?, additional_info = ? "
+            "SET first_name = ?, last_name = ?, phone = ?, street = ?, city = ?, province = ?, postal_code = ?, country = ?, additional_info = ? "
             "WHERE id = ? AND user_id = ?";
     }
     // Inicializar la sentencia
@@ -454,7 +459,8 @@ std::optional<int> AddressModel::updateAddress(
     if (!stmt)
     {
         fprintf(stderr, "Statement initialization failed: %s\n", mysql_error(conn));
-        return std::nullopt;
+        mysql_query(conn, "ROLLBACK");
+        return {std::nullopt, Errors::StatementInitFailed};
     }
     // Utilizamos RAII para garantizar que se cierre el statement
     auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
@@ -463,11 +469,12 @@ std::optional<int> AddressModel::updateAddress(
     if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
     {
         fprintf(stderr, "Statement preparation failed: %s\n", mysql_stmt_error(stmt));
-        return std::nullopt;
+        mysql_query(conn, "ROLLBACK");
+        return {std::nullopt, Errors::StatementPrepareFailed};
     }
 
     // Declarar el arreglo para los parámetros. La cantidad total de parámetros en la consulta es 13
-    constexpr size_t NUM_PARAMS = 12;
+    constexpr size_t NUM_PARAMS = 11;
     MYSQL_BIND param[NUM_PARAMS];
     memset(param, 0, sizeof(param));
 
@@ -513,40 +520,35 @@ std::optional<int> AddressModel::updateAddress(
     param[7].buffer = (void *)country.c_str();
     param[7].buffer_length = country.size();
 
-    // 9. is_default
-    // Convertir bool a un unsigned char (o TINYINT) ya que MySQL espera un entero en este caso.
-    unsigned char is_default_val = is_default ? 1 : 0;
-    param[8].buffer_type = MYSQL_TYPE_TINY;
-    param[8].buffer = (void *)&is_default_val;
-    param[8].buffer_length = sizeof(is_default_val);
-
     // 10. additional_info
-    param[9].buffer_type = MYSQL_TYPE_STRING;
-    param[9].buffer = (void *)additional_info.c_str();
-    param[9].buffer_length = additional_info.size();
+    param[8].buffer_type = MYSQL_TYPE_STRING;
+    param[8].buffer = (void *)additional_info.c_str();
+    param[8].buffer_length = additional_info.size();
 
     // 11. address_id (ID de la dirección a actualizar)
-    param[10].buffer_type = MYSQL_TYPE_LONG;
-    param[10].buffer = (void *)&address_id;
-    param[10].buffer_length = sizeof(address_id);
+    param[9].buffer_type = MYSQL_TYPE_LONG;
+    param[9].buffer = (void *)&address_id;
+    param[9].buffer_length = sizeof(address_id);
 
     // 12. user_id (ID del usuario dueño de la dirección)
-    param[11].buffer_type = MYSQL_TYPE_LONG;
-    param[11].buffer = (void *)&user_id;
-    param[11].buffer_length = sizeof(user_id);
+    param[10].buffer_type = MYSQL_TYPE_LONG;
+    param[10].buffer = (void *)&user_id;
+    param[10].buffer_length = sizeof(user_id);
 
     // Enlazar los parámetros a la sentencia
     if (mysql_stmt_bind_param(stmt, param) != 0)
     {
         fprintf(stderr, "Parameter binding failed: %s\n", mysql_stmt_error(stmt));
-        return std::nullopt;
+        mysql_query(conn, "ROLLBACK");
+        return {std::nullopt, Errors::BindParamFailed};
     }
 
     // Ejecutar la sentencia
     if (mysql_stmt_execute(stmt) != 0)
     {
         fprintf(stderr, "Statement execution failed: %s\n", mysql_stmt_error(stmt));
-        return std::nullopt;
+        mysql_query(conn, "ROLLBACK");
+        return {std::nullopt, Errors::ExecutionFailed};
     }
 
     // Obtener la cantidad de filas afectadas. Por lo general, para un UPDATE exitoso, debe ser al menos 1.
@@ -554,10 +556,18 @@ std::optional<int> AddressModel::updateAddress(
     if (affected == 0)
     {
         fprintf(stdout, "No se realizaron cambios en la dirección (los datos son idénticos).\n");
+        mysql_query(conn, "ROLLBACK");
+        return {std::nullopt, Errors::NoRowsAffected};
     }
 
     // En caso de éxito, retornamos la cantidad de filas actualizadas (usualmente 1).
-    return static_cast<int>(affected);
+    if (mysql_query(conn, "COMMIT") != 0)
+    {
+        fprintf(stderr, "Error committing transaction: %s\n", mysql_error(conn));
+        return {std::nullopt, Errors::CommitFailed};
+    }
+    std::cout << "Address updated successfully for user_id: " << user_id << std::endl;
+    return {true, Errors::NoError};
 }
 //---------------->>END UPDATE ADDRESS<<------------------//
 
@@ -834,3 +844,160 @@ std::optional<int> AddressModel::deleteAddress(
     // En caso de éxito, retornamos la cantidad de filas eliminadas (usualmente 1).
     return static_cast<int>(affected);
 } //---------------->>END DELETE ADDRESS<<------------------//
+
+std::pair<std::optional<bool>, Errors> AddressModel::setDefaultAddress(const int user_id, const int address_id, std::string &type)
+{
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn || mysql_ping(conn) != 0)
+    {
+        std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
+        return {false, Errors::DatabaseConnectionFailed};
+    }
+
+    mysql_query(conn, "START TRANSACTION");
+
+    // Primero, restablecer el valor de is_default a 0 para todas las direcciones del usuario
+    const char *reset_query = nullptr;
+    if (type == "billing")
+    {
+        reset_query =
+            "UPDATE billing_addresses SET is_default = 0 WHERE user_id = ? ";
+    }
+    else
+    {
+        reset_query =
+            "UPDATE shipping_addresses SET is_default = 0 WHERE user_id = ? ";
+    }
+
+    MYSQL_STMT *reset_stmt = mysql_stmt_init(conn);
+    if (!reset_stmt)
+    {
+        std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::StatementInitFailed};
+    }
+
+    auto reset_stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(reset_stmt, mysql_stmt_close);
+
+    if (mysql_stmt_prepare(reset_stmt, reset_query, strlen(reset_query)) != 0)
+    {
+        std::cerr << "Statement preparation failed: " << mysql_stmt_error(reset_stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::StatementPrepareFailed};
+    }
+
+    // Definir los parámetros para restablecer is_default
+    MYSQL_BIND reset_param[1];
+    memset(reset_param, 0, sizeof(reset_param));
+    // user_id
+    reset_param[0].buffer_type = MYSQL_TYPE_LONG;
+    reset_param[0].buffer = (void *)&user_id;
+    reset_param[0].buffer_length = sizeof(user_id);
+
+    if (mysql_stmt_bind_param(reset_stmt, reset_param) != 0)
+    {
+        std::cerr << "Parameter binding failed: " << mysql_stmt_error(reset_stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::BindParamFailed};
+    }
+
+    if (mysql_stmt_execute(reset_stmt) != 0)
+    {
+        std::cerr << "Statement execution failed: " << mysql_stmt_error(reset_stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::ExecutionFailed};
+    }
+
+    if (mysql_stmt_affected_rows(reset_stmt) == 0)
+    {
+        std::cerr << "⚠️ No rows affected when resetting is_default for user_id: " << user_id << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::NoRowsAffected};
+    }
+    // Commit the transaction
+
+    if (mysql_query(conn, "COMMIT") != 0)
+    {
+        std::cerr << "Transaction commit failed: " << mysql_error(conn) << std::endl;
+        return {false, Errors::CommitFailed};
+    }
+
+    // Luego, establecer el valor de is_default a 1 para la dirección específica
+    if (mysql_query(conn, "START TRANSACTION") != 0)
+    {
+        std::cerr << "Transaction start failed: " << mysql_error(conn) << std::endl;
+        return {false, Errors::TransactionStartFailed};
+    }
+
+    const char *set_query = nullptr;
+
+    if (type == "billing")
+    {
+        set_query =
+            "UPDATE billing_addresses SET is_default = 1 WHERE id = ? AND user_id = ?";
+    }
+    else
+    {
+        set_query =
+            "UPDATE shipping_addresses SET is_default = 1 WHERE id = ? AND user_id = ?";
+    }
+
+    MYSQL_STMT *set_stmt = mysql_stmt_init(conn);
+
+    if (!set_stmt)
+    {
+        std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::StatementInitFailed};
+    }
+    auto set_stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(set_stmt, mysql_stmt_close);
+
+    if (mysql_stmt_prepare(set_stmt, set_query, strlen(set_query)) != 0)
+    {
+        std::cerr << "Statement preparation failed: " << mysql_stmt_error(set_stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::StatementPrepareFailed};
+    }
+    // Definir los parámetros para establecer is_default
+    MYSQL_BIND set_param[2];
+    memset(set_param, 0, sizeof(set_param));
+    // address_id
+    set_param[0].buffer_type = MYSQL_TYPE_LONG;
+    set_param[0].buffer = (void *)&address_id;
+    set_param[0].buffer_length = sizeof(address_id);
+    // user_id
+    set_param[1].buffer_type = MYSQL_TYPE_LONG;
+    set_param[1].buffer = (void *)&user_id;
+    set_param[1].buffer_length = sizeof(user_id);
+
+    if (mysql_stmt_bind_param(set_stmt, set_param) != 0)
+    {
+        std::cerr << "Parameter binding failed: " << mysql_stmt_error(set_stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::BindParamFailed};
+    }
+
+    if (mysql_stmt_execute(set_stmt) != 0)
+    {
+        std::cerr << "Statement execution failed: " << mysql_stmt_error(set_stmt) << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::ExecutionFailed};
+    }
+
+    if (mysql_stmt_affected_rows(set_stmt) == 0)
+    {
+        std::cerr << "⚠️ No rows affected when setting is_default for address_id: " << address_id << " and user_id: " << user_id << std::endl;
+        mysql_query(conn, "ROLLBACK");
+        return {false, Errors::NoRowsAffected};
+    }
+
+    // Commit the transaction
+    if (mysql_query(conn, "COMMIT") != 0)
+    {
+        std::cerr << "Transaction commit failed: " << mysql_error(conn) << std::endl;
+        return {false, Errors::CommitFailed};
+    }
+
+    return {true, Errors::NoError};
+}
