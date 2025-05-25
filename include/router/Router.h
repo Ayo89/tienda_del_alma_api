@@ -10,6 +10,7 @@
 #include "controllers/OrderController.h"
 #include "controllers/PaypalController.h"
 #include "controllers/CarrierController.h"
+#include "controllers/CategoryController.h"
 
 
 class Router

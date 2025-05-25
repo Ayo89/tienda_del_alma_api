@@ -44,6 +44,7 @@ add_executable(tienda_del_alma
   src/controllers/OrderController.cpp
   src/controllers/PaypalController.cpp
   src/controllers/CarrierController.cpp
+  src/controllers/CategoryController.cpp
   src/model/UserModel.cpp
   src/model/ProductModel.cpp
   src/model/AddressModel.cpp
@@ -51,6 +52,7 @@ add_executable(tienda_del_alma
   src/model/OrderItemModel.cpp
   src/model/CarrierModel.cpp
   src/model/PaymentAttemptModel.cpp
+  src/model/CategoryModel.cpp
   src/utils/UtilsOwner.cpp
   src/services/PaypalService.cpp
 )

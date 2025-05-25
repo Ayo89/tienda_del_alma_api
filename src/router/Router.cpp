@@ -140,6 +140,14 @@ void Router::setup_routes()
             response = model.getCarriers(request);
         }
 
+        //CATEGORIES
+
+        if (method == web::http::methods::GET && path == U("/categories"))
+        {
+            CategoryController categoryController;
+            response = categoryController.getAllCategories();
+        }
+
 
         // 🔹 Añadir encabezados CORS
         Server::add_cors_headers(response);
