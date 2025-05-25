@@ -855,7 +855,11 @@ std::pair<std::optional<bool>, Errors> AddressModel::setDefaultAddress(const int
         return {false, Errors::DatabaseConnectionFailed};
     }
 
-    mysql_query(conn, "START TRANSACTION");
+    if (mysql_query(conn, "START TRANSACTION") != 0)
+    {
+        std::cerr << "Transaction start failed: " << mysql_error(conn) << std::endl;
+        return {false, Errors::TransactionStartFailed};
+    }
 
     // Primero, restablecer el valor de is_default a 0 para todas las direcciones del usuario
     const char *reset_query = nullptr;
@@ -911,9 +915,7 @@ std::pair<std::optional<bool>, Errors> AddressModel::setDefaultAddress(const int
 
     if (mysql_stmt_affected_rows(reset_stmt) == 0)
     {
-        std::cerr << "⚠️ No rows affected when resetting is_default for user_id: " << user_id << std::endl;
-        mysql_query(conn, "ROLLBACK");
-        return {false, Errors::NoRowsAffected};
+        std::cerr << "⚠️ No rows affected when resetting is_default in " << type << " addresses for user_id: " << user_id << std::endl;
     }
     // Commit the transaction
 
@@ -931,6 +933,7 @@ std::pair<std::optional<bool>, Errors> AddressModel::setDefaultAddress(const int
     }
 
     const char *set_query = nullptr;
+    std::cout << type << "TYPE" << std::endl;
 
     if (type == "billing")
     {
