@@ -9,6 +9,10 @@
 #include <openssl/sha.h>
 #include <vector>
 #include "entities/OrderItem.h"
+#include <algorithm>  
+#include <openssl/evp.h>
+
+
 
 class UtilsOwner
 {

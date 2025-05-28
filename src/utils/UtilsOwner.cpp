@@ -78,14 +78,33 @@ static std::string serializeCart(int order_id, double total, const std::vector<O
 // Función que calcula SHA256 y devuelve hex string
 static std::string sha256(const std::string &data)
 {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, data.data(), data.size());
-    SHA256_Final(hash, &sha256);
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    unsigned int lengthOfHash = 0;
+
+    EVP_MD_CTX* context = EVP_MD_CTX_new();
+    if (context == nullptr) {
+        throw std::runtime_error("Failed to create EVP_MD_CTX");
+    }
+
+    if (EVP_DigestInit_ex(context, EVP_sha256(), nullptr) != 1) {
+        EVP_MD_CTX_free(context);
+        throw std::runtime_error("Failed to initialize digest");
+    }
+
+    if (EVP_DigestUpdate(context, data.data(), data.size()) != 1) {
+        EVP_MD_CTX_free(context);
+        throw std::runtime_error("Failed to update digest");
+    }
+
+    if (EVP_DigestFinal_ex(context, hash, &lengthOfHash) != 1) {
+        EVP_MD_CTX_free(context);
+        throw std::runtime_error("Failed to finalize digest");
+    }
+
+    EVP_MD_CTX_free(context);
 
     std::ostringstream oss;
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
+    for (unsigned int i = 0; i < lengthOfHash; ++i)
     {
         oss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
     }
