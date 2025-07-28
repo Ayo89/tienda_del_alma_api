@@ -7,41 +7,27 @@ UserModel::UserModel() {}
 
 std::optional<int> UserModel::createUser(const std::string &first_name,
                                          const std::string &password,
-                                         const std::string &email)
+                                         const std::string &email,
+                                         const std::string &auth_provider,
+                                         const std::string &auth_id)
 {
-    // Validaciones básicas
-    if (first_name.empty() || password.empty() || email.empty())
-    {
-        std::cerr << "Error: name, password, or email cannot be empty" << std::endl;
-        return std::nullopt;
-    }
     DatabaseConnection &db = DatabaseConnection::getInstance();
-    // Obtener el puntero a la conexión MySQL
     MYSQL *conn = db.getConnection();
     if (!conn)
     {
-        std::cerr << "Error: No active database connection" << std::endl;
+        std::cerr << "Error: No DB connection" << std::endl;
         return std::nullopt;
     }
 
-    // Preparar la consulta
-    const char *query = "INSERT INTO users (first_name, password, email) VALUES (?, ?, ?)";
+    const char *query = "INSERT INTO users (first_name, password, email, auth_provider, auth_id) VALUES (?, ?, ?, ?, ?)";
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
-    if (!stmt)
+    if (!stmt || mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
     {
-        std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
+        std::cerr << "Statement error: " << mysql_stmt_error(stmt) << std::endl;
         return std::nullopt;
     }
-    // Preparar el statement
-    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
-    {
-        std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt)
-                  << " (MySQL error: " << mysql_error(conn) << ")" << std::endl;
-        mysql_stmt_close(stmt);
-        return std::nullopt;
-    }
-    // Vincular parámetros
-    MYSQL_BIND bind[3];
+
+    MYSQL_BIND bind[5];
     memset(bind, 0, sizeof(bind));
 
     bind[0].buffer_type = MYSQL_TYPE_STRING;
@@ -56,25 +42,22 @@ std::optional<int> UserModel::createUser(const std::string &first_name,
     bind[2].buffer = (void *)email.c_str();
     bind[2].buffer_length = email.length();
 
-    if (mysql_stmt_bind_param(stmt, bind) != 0)
-    {
-        std::cerr << "Parameter binding failed: " << mysql_stmt_error(stmt) << std::endl;
-        mysql_stmt_close(stmt);
-        return std::nullopt;
-    }
+    bind[3].buffer_type = MYSQL_TYPE_STRING;
+    bind[3].buffer = (void *)auth_provider.c_str();
+    bind[3].buffer_length = auth_provider.length();
 
-    // Ejecutar la consulta preparada
-    if (mysql_stmt_execute(stmt) != 0)
+    bind[4].buffer_type = MYSQL_TYPE_STRING;
+    bind[4].buffer = (void *)auth_id.c_str();
+    bind[4].buffer_length = auth_id.length();
+
+    if (mysql_stmt_bind_param(stmt, bind) != 0 || mysql_stmt_execute(stmt) != 0)
     {
         std::cerr << "Execution failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return std::nullopt;
     }
 
-    std::cout << "User created successfully: " << first_name << std::endl;
-
     int user_id = mysql_insert_id(conn);
-
     mysql_stmt_close(stmt);
     return user_id;
 }
@@ -190,7 +173,7 @@ std::optional<User> UserModel::findUserByEmail(const std::string &email)
         return std::nullopt;
     }
 
-    const char *query = "SELECT id, first_name, email, password, created_at FROM users WHERE email = ?";
+    const char *query = "SELECT id, first_name, email, password, auth_provider, auth_id, created_at FROM users WHERE email = ?";
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
     if (!stmt)
     {
@@ -233,33 +216,52 @@ std::optional<User> UserModel::findUserByEmail(const std::string &email)
     char email_buf[100];
     char password[100];
     char created_at[100];
-    unsigned long first_name_len, email_len, password_len, created_at_len;
-
-    MYSQL_BIND result[5];
+    char auth_provider[100];
+    char auth_id[255];
+    unsigned long first_name_len, email_len, password_len, auth_provider_len, auth_id_len, created_at_len;
+    bool is_null[7];
+    MYSQL_BIND result[7];
     memset(result, 0, sizeof(result));
 
     result[0].buffer_type = MYSQL_TYPE_LONG;
     result[0].buffer = (char *)&id;
+    result[0].is_null = &is_null[0];
 
     result[1].buffer_type = MYSQL_TYPE_STRING;
     result[1].buffer = first_name;
     result[1].buffer_length = sizeof(first_name);
     result[1].length = &first_name_len;
+    result[1].is_null = &is_null[1];
 
     result[2].buffer_type = MYSQL_TYPE_STRING;
     result[2].buffer = email_buf;
     result[2].buffer_length = sizeof(email_buf);
     result[2].length = &email_len;
+    result[2].is_null = &is_null[2];
 
     result[3].buffer_type = MYSQL_TYPE_STRING;
     result[3].buffer = password;
     result[3].buffer_length = sizeof(password);
     result[3].length = &password_len;
+    result[3].is_null = &is_null[3];
 
     result[4].buffer_type = MYSQL_TYPE_STRING;
-    result[4].buffer = created_at;
-    result[4].buffer_length = sizeof(created_at);
-    result[4].length = &created_at_len;
+    result[4].buffer = auth_provider;
+    result[4].buffer_length = sizeof(auth_provider);
+    result[4].length = &auth_provider_len;
+    result[4].is_null = &is_null[4];
+
+    result[5].buffer_type = MYSQL_TYPE_STRING;
+    result[5].buffer = auth_id;
+    result[5].buffer_length = sizeof(auth_id);
+    result[5].length = &auth_id_len;
+    result[5].is_null = &is_null[5];
+
+        result[6].buffer_type = MYSQL_TYPE_STRING;
+    result[6].buffer = created_at;
+    result[6].buffer_length = sizeof(created_at);
+    result[6].length = &created_at_len;
+    result[6].is_null = &is_null[6];
 
     if (mysql_stmt_bind_result(stmt, result) != 0)
     {
@@ -287,6 +289,104 @@ std::optional<User> UserModel::findUserByEmail(const std::string &email)
     user.first_name = std::string(first_name, first_name_len);
     user.email = std::string(email_buf, email_len);
     user.password = std::string(password, password_len);
+    user.auth_provider = std::string(auth_provider, auth_provider_len);
+    user.auth_id = std::string(auth_id, auth_id_len);
+    user.created_at = std::string(created_at, created_at_len);
+
+    mysql_stmt_close(stmt);
+    return user;
+}
+
+std::optional<User> UserModel::findUserByEmailAndProvider(const std::string &email, const std::string &auth_provider)
+{
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn)
+    {
+        std::cerr << "Error: No DB connection" << std::endl;
+        return std::nullopt;
+    }
+
+    const char *query = "SELECT id, first_name, email, password, auth_provider, auth_id, created_at FROM users WHERE email = ? AND auth_provider = ?";
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    if (!stmt || mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    {
+        std::cerr << "Statement error: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    MYSQL_BIND param[2];
+    memset(param, 0, sizeof(param));
+
+    param[0].buffer_type = MYSQL_TYPE_STRING;
+    param[0].buffer = (void *)email.c_str();
+    param[0].buffer_length = email.length();
+
+    param[1].buffer_type = MYSQL_TYPE_STRING;
+    param[1].buffer = (void *)auth_provider.c_str();
+    param[1].buffer_length = auth_provider.length();
+
+    if (mysql_stmt_bind_param(stmt, param) != 0 || mysql_stmt_execute(stmt) != 0)
+    {
+        std::cerr << "Param bind or execute error: " << mysql_stmt_error(stmt) << std::endl;
+        mysql_stmt_close(stmt);
+        return std::nullopt;
+    }
+
+    // Campos de salida
+    int id;
+    char first_name[100], email_buf[100], password[100], provider[50], auth_id[255], created_at[100];
+    unsigned long first_name_len, email_len, password_len, provider_len, auth_id_len, created_at_len;
+
+    MYSQL_BIND result[7];
+    memset(result, 0, sizeof(result));
+
+    result[0].buffer_type = MYSQL_TYPE_LONG;
+    result[0].buffer = &id;
+
+    result[1].buffer_type = MYSQL_TYPE_STRING;
+    result[1].buffer = first_name;
+    result[1].buffer_length = sizeof(first_name);
+    result[1].length = &first_name_len;
+
+    result[2].buffer_type = MYSQL_TYPE_STRING;
+    result[2].buffer = email_buf;
+    result[2].buffer_length = sizeof(email_buf);
+    result[2].length = &email_len;
+
+    result[3].buffer_type = MYSQL_TYPE_STRING;
+    result[3].buffer = password;
+    result[3].buffer_length = sizeof(password);
+    result[3].length = &password_len;
+
+    result[4].buffer_type = MYSQL_TYPE_STRING;
+    result[4].buffer = provider;
+    result[4].buffer_length = sizeof(provider);
+    result[4].length = &provider_len;
+
+    result[5].buffer_type = MYSQL_TYPE_STRING;
+    result[5].buffer = auth_id;
+    result[5].buffer_length = sizeof(auth_id);
+    result[5].length = &auth_id_len;
+
+    result[6].buffer_type = MYSQL_TYPE_STRING;
+    result[6].buffer = created_at;
+    result[6].buffer_length = sizeof(created_at);
+    result[6].length = &created_at_len;
+
+    if (mysql_stmt_bind_result(stmt, result) != 0 || mysql_stmt_store_result(stmt) != 0 || mysql_stmt_fetch(stmt) != 0)
+    {
+        mysql_stmt_close(stmt);
+        return std::nullopt;
+    }
+
+    User user;
+    user.id = id;
+    user.first_name = std::string(first_name, first_name_len);
+    user.email = std::string(email_buf, email_len);
+    user.password = std::string(password, password_len);
+    user.auth_provider = std::string(provider, provider_len);
+    user.auth_id = std::string(auth_id, auth_id_len);
     user.created_at = std::string(created_at, created_at_len);
 
     mysql_stmt_close(stmt);

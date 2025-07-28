@@ -35,6 +35,7 @@ add_executable(tienda_del_alma
   src/env/EnvLoader.cpp
   src/server/Server.cpp
   src/services/jwt/JwtService.cpp
+  src/services/jwt/Auth0JwtUtils.cpp
   src/router/Router.cpp
   src/controllers/AuthController.cpp
   src/controllers/AuthUtils.cpp
@@ -62,6 +63,7 @@ target_include_directories(tienda_del_alma PRIVATE
   ${MYSQL_INCLUDE_DIRS}
   ${SODIUM_INCLUDE_DIRS}
   ${OPENSSL_INCLUDE_DIR}
+  ${jwt-cpp_SOURCE_DIR} 
   ${CMAKE_SOURCE_DIR}/include   # si tienes headers en include/
 )
 

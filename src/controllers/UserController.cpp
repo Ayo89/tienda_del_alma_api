@@ -3,9 +3,13 @@ UserController::UserController() : model() {}
 
 std::optional<int> UserController::createUser(const std::string &first_name,
                                               const std::string &password,
-                                              const std::string &email)
+                                              const std::string &email, 
+                                              const std::string &auth_provider,
+                                              const std::string &auth_id)
+
 {
-    std::optional<int> user_id = model.createUser(first_name, password, email);
+    
+    std::optional<int> user_id = model.createUser(first_name, password, email, auth_provider, auth_id);
     if (user_id.has_value())
     {
         std::cout << "Usuario creado exitosamente: " << first_name

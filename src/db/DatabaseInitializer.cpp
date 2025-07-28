@@ -40,8 +40,8 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "DROP TABLE IF EXISTS orders;",
             "DROP TABLE IF EXISTS inventory;",
             "DROP TABLE IF EXISTS products;",
-            /*                       "DROP TABLE IF EXISTS shipping_addresses;",
-            "DROP TABLE IF EXISTS billing_addresses;", */
+/*             "DROP TABLE IF EXISTS shipping_addresses;",
+            "DROP TABLE IF EXISTS billing_addresses;",  */
             "DROP TABLE IF EXISTS categories;",
             "DROP TABLE IF EXISTS brands;",
             "DROP TABLE IF EXISTS carriers;",
@@ -64,6 +64,8 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "first_name VARCHAR(50) NOT NULL, "
             "email VARCHAR(100) NOT NULL UNIQUE, "
             "password VARCHAR(255) NOT NULL, "
+            "auth_provider VARCHAR(50) NOT NULL, "
+            "auth_id VARCHAR(100), "
             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
             ") ENGINE=InnoDB;";
     if (!executeQuery(query))

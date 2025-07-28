@@ -16,7 +16,10 @@ public:
     UserController();
     std::optional<int> createUser(const std::string &first_name,
                     const std::string &password,
-                    const std::string &email);
+                    const std::string &email,
+                    const std::string &auth_provider,
+                    const std::string &auth_id
+                );
 
     std::optional<User> getUserById(int user_id);
     std::optional<User> getUserByEmail(const std::string &email);

@@ -75,6 +75,9 @@
         "forward_list": "cpp",
         "future": "cpp",
         "ranges": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "source_location": "cpp",
+        "format": "cpp",
+        "shared_mutex": "cpp"
     }
 }

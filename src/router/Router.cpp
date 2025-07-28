@@ -36,6 +36,12 @@ void Router::setup_routes()
             response = authController.login(request);
         }
 
+        //GOOGLE
+        if (method == web::http::methods::POST && path == U("/auth-google"))
+        {
+            response = authController.googleLogin(request);
+        }
+
 
 
         //PRODUCTS

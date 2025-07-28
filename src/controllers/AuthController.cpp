@@ -40,10 +40,16 @@ http_response AuthController::signup(const http_request &request)
                             response.set_body(json::value::object({{U("error"), json::value::string(U("Error al generar el hash de la contraseña"))}}));
                             return; // exit lambda
                         }
-
+                        // Verificar si el usuario ya existe
+                        auto userOpt = this->userController.getUserByEmail(email);
+                         std::optional<int> user_id;
+                        if (!userOpt.has_value())
+                        {
+                            // El usuario NO existe → crear nuevo usuario
+                            user_id = this->userController.createUser(first_name, hashed, email, "local", "");  
+                            std::cout<<user_id.value()<<std::endl;    
+                        }else {}
                         // Llamar al controlador de usuarios
-                        std::optional<int> user_id = this->userController.createUser(first_name, hashed, email);
-                        std::cout<<user_id.value()<<std::endl;    
                         if (user_id.has_value()) {
                             std::string secret = env.get("JWT_SECRET", "");
                             if (secret.empty())
@@ -106,6 +112,7 @@ http_response AuthController::login(const http_request &request)
                 {
                     // Extraer email y password del JSON
                     auto email = utility::conversions::to_utf8string(body.at(U("email")).as_string());
+                    int user_id;
                     std::string password = body.at(U("password")).as_string();
 
                     // Usamos el controlador de usuarios para buscar el usuario por email.
@@ -118,11 +125,24 @@ http_response AuthController::login(const http_request &request)
                             {U("error"), json::value::string(U("Usuario no encontrado"))}
                         }));
                         return;
-                    }
-                    
-                    // Suponiendo que la entidad User tiene el campo password_hash
-                    auto user = userOpt.value();
+                    }else {
+                                    auto user = userOpt.value();
 
+                                    if (user.auth_provider != "local") {
+                                        // Conflicto: cuenta ya existe con otro método de login
+                                        response.set_status_code(status_codes::Conflict); // 409
+                                        response.set_body(json::value::object({
+                                            {U("error"), json::value::string(U("Este email ya está registrado con otro método de autenticación. Inicia sesión con tu contraseña."))}
+                                        }));
+                                        return;
+                                    }
+
+                                
+
+                                    user_id = user.id;
+                                }
+                    
+                    auto user = userOpt.value();
                     // Verificar la contraseña usando libsodium
                     if (crypto_pwhash_str_verify(user.password.c_str(), password.c_str(), password.size()) != 0)
                     {
@@ -175,3 +195,88 @@ http_response AuthController::login(const http_request &request)
 
     return response;
 }
+
+http_response AuthController::googleLogin(const http_request &request)
+{
+    http_response response(status_codes::OK);
+    EnvLoader env(".env");
+    env.load();
+    std::cout << "entrando en google login: " <<  std::endl;
+    try {
+        auto body = request.extract_json().get();
+
+        if (!body.has_field(U("id_token"))) {
+            response.set_status_code(status_codes::BadRequest);
+            response.set_body(json::value::object({ {U("error"), json::value::string(U("Falta el id_token"))} }));
+            return response;
+        }
+
+        std::string id_token = utility::conversions::to_utf8string(body.at(U("id_token")).as_string());
+
+        // Leer clave pública desde el archivo PEM
+        std::string publicKeyPem = Auth0JwtUtils::readPemFile("config/auth0_public.pem");
+
+        // Validar y extraer datos del token
+        auto decoded = Auth0JwtUtils::verifyAndExtractUser(
+            id_token,
+            publicKeyPem,
+            env.get("GOOGLE_CLIENT_ID"),
+            env.get("AUTH0_ISSUER")
+        );
+
+        const std::string& email = decoded.email;
+        const std::string& sub = decoded.sub;
+        const std::string name = "Usuario Google";
+
+        // Buscar usuario o crearlo
+        auto userOpt = this->userController.getUserByEmail(email);
+        int user_id;
+
+        if (!userOpt.has_value()) {
+            auto created = this->userController.createUser(name, "", email, "google", sub);
+            if (!created.has_value()) {
+                response.set_status_code(status_codes::InternalError);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("Error al crear usuario"))} }));
+                return response;
+            }
+            user_id = created.value();
+        } else {
+            auto user = userOpt.value();
+            std::cout << "Usuario encontrado: " << user.auth_provider << std::endl;
+            if (user.auth_provider != U("google")) {
+                response.set_status_code(status_codes::Conflict);
+                response.set_body(json::value::object({
+                    {U("error"), json::value::string(U("Este email ya está registrado con otro método de autenticación. Inicia sesión con tu contraseña."))}
+                }));
+                return response;
+            }
+
+            if (!user.auth_id.empty() && user.auth_id != sub) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({
+                    {U("error"), json::value::string(U("El identificador de Google no coincide."))}
+                }));
+                return response;
+            }
+
+            user_id = user.id;
+        }
+
+        // Crear JWT interno
+        auto token = JwtService::generateToken(std::to_string(user_id), email);
+
+        response.headers().add(U("X-Token"), utility::conversions::to_string_t(token));
+        response.set_status_code(status_codes::OK);
+        response.set_body(json::value::object({
+            {U("message"), json::value::string(U("Login con Google exitoso"))},
+            {U("success"), json::value::boolean(true)},
+        }));
+        return response;
+
+    } catch (const std::exception& e) {
+        response.set_status_code(status_codes::BadRequest);
+        response.set_body(json::value::object({ {U("error"), json::value::string(U("Token inválido o error interno"))} }));
+        return response;
+    }
+}
+
