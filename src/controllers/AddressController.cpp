@@ -2,18 +2,8 @@
 
 AddressController::AddressController() {}
 
-web::http::http_response AddressController::createAddress(const web::http::http_request &request)
+web::http::http_response AddressController::createAddress(const web::http::http_request &request, const int userId)
 {
-    // 1. Verifying user_id from token
-    std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
-    if (!user_id.has_value())
-    {
-        // Si el token es inválido o ha expirado
-        web::http::http_response response(web::http::status_codes::Unauthorized);
-        response.set_body(U("Unauthorized: Invalid Token or Expired"));
-        return response; // Devuelves la respuesta aquí
-    }
-
     // 4. Obtener los datos del cuerpo de la solicitud (como la dirección)
     web::json::value json_data = request.extract_json().get();
     std::string first_name = json_data[U("first_name")].as_string();
@@ -29,7 +19,7 @@ web::http::http_response AddressController::createAddress(const web::http::http_
     bool is_default = json_data.has_field(U("is_default")) ? json_data[U("is_default")].as_bool() : false;
     std::string additional_info = json_data.has_field(U("additional_info")) ? json_data[U("additional_info")].as_string() : "";
     // 5. Crear la dirección utilizando el AddressModel (sin necesidad de pasar db)
-    std::optional<int> address_id = model.createAddress(std::stoi(user_id.value()), first_name, last_name, phone, street, city, province, postal_code, country, type, is_default, additional_info);
+    std::optional<int> address_id = model.createAddress(userId, first_name, last_name, phone, street, city, province, postal_code, country, type, is_default, additional_info);
 
     if (address_id.has_value())
     {
@@ -45,21 +35,11 @@ web::http::http_response AddressController::createAddress(const web::http::http_
     }
 }
 
-web::http::http_response AddressController::getAddressesByUserId(const web::http::http_request &request)
+web::http::http_response AddressController::getAddressesByUserId(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
-    // Obtener user_id a través del token (desde cookies)
-    std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
-    if (!user_id.has_value())
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Invalid Token or Expired"));
-        return response;
-    }
-    std::cout << "User ID: " << user_id.value() << std::endl;
     // Consultar direcciones del usuario
-    auto addresses = model.getAllAddressByUserId(std::stoi(user_id.value()));
-
+    auto addresses = model.getAllAddressByUserId(user_id);
     if (!addresses.has_value())
     {
         std::cout << "⚠️ Addresses not has value" << std::endl;
@@ -108,16 +88,10 @@ web::http::http_response AddressController::getAddressesByUserId(const web::http
     return response;
 }
 
-web::http::http_response AddressController::getAddressById(const web::http::http_request &request)
+web::http::http_response AddressController::getAddressById(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
-    std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
-    if (!user_id.has_value())
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token no proporcionado o inválido"));
-        return response;
-    }
+   
     // Obtain address_id from URL
     auto path = request.request_uri().path();
     auto address_id_str = path.substr(path.find_last_of('/') + 1);
@@ -134,7 +108,7 @@ web::http::http_response AddressController::getAddressById(const web::http::http
     }
 
     // Check if the address_id is valid
-    auto address = model.getAddressById(address_id, std::stoi(user_id.value()), type);
+    auto address = model.getAddressById(address_id, user_id, type);
     if (!address.has_value())
     {
         response.set_status_code(web::http::status_codes::NotFound);
@@ -165,18 +139,10 @@ web::http::http_response AddressController::getAddressById(const web::http::http
 }
 
 // update
-web::http::http_response AddressController::updateAddress(const web::http::http_request &request)
+web::http::http_response AddressController::updateAddress(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
 
-    // 1. Obtainer user_id from token (from cookies)
-    std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
-    if (!user_id.has_value())
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Invalid Token or Expired"));
-        return response;
-    }
 
     // 2. Obtener address_id from URL
     auto path = request.request_uri().path();
@@ -214,7 +180,7 @@ web::http::http_response AddressController::updateAddress(const web::http::http_
 
         // 6. Execute updateAddress method
         auto [result_updateAddress, error_updateAddress] = model.updateAddress(
-            std::stoi(user_id.value()),
+            user_id,
             address_id,
             first_name,
             last_name,
@@ -261,23 +227,14 @@ web::http::http_response AddressController::updateAddress(const web::http::http_
 }
 
 // delete
-web::http::http_response AddressController::deleteAddress(const web::http::http_request &request)
+web::http::http_response AddressController::deleteAddress(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
 
-    // 1. Obtainer user_id from token (from cookies)
-    std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
-    if (!user_id.has_value())
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Invalid Token or Expired"));
-        return response;
-    }
     // 2. Obtainer address_id from URL
     auto path = request.request_uri().path();
     auto address_id_str = path.substr(path.find_last_of('/') + 1);
     int address_id = std::stoi(address_id_str);
-    int user_id_int = std::stoi(user_id.value());
     auto query = web::uri::split_query(request.request_uri().query());
     std::string type = "shipping"; // valor por defecto
 
@@ -286,7 +243,7 @@ web::http::http_response AddressController::deleteAddress(const web::http::http_
     {
         type = it->second;
     }
-    auto allAddressesOpt = model.getAllAddressByUserId(user_id_int);
+    auto allAddressesOpt = model.getAllAddressByUserId(user_id);
 
     if (!allAddressesOpt.has_value())
     {
@@ -320,7 +277,7 @@ web::http::http_response AddressController::deleteAddress(const web::http::http_
         return response;
     }
     // 4. Execute deleteAddress method
-    auto result = model.deleteAddress(user_id_int, address_id, type);
+    auto result = model.deleteAddress(user_id, address_id, type);
 
     // 5. Verify if the address was deleted successfully
     if (!result.has_value())
@@ -336,18 +293,10 @@ web::http::http_response AddressController::deleteAddress(const web::http::http_
     return response;
 }
 
-web::http::http_response AddressController::setDefaultAddressController(const web::http::http_request &request)
+web::http::http_response AddressController::setDefaultAddressController(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
 
-    // 1. Obtainer user_id from token (from cookies)
-    std::optional<std::string> user_id = AuthUtils::getUserIdFromRequest(request);
-    if (!user_id.has_value())
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Invalid Token or Expired"));
-        return response;
-    }
     // 2. Obtainer address_id from params
     auto path = web::uri::split_path(request.request_uri().path());
     if (path.size() < 4)
@@ -361,7 +310,7 @@ web::http::http_response AddressController::setDefaultAddressController(const we
     int address_id = std::stoi(path[3]);
 
     // 4. Execute setDefaultAddress method
-    auto [result, error] = model.setDefaultAddress(std::stoi(user_id.value()), address_id, type);
+    auto [result, error] = model.setDefaultAddress(user_id, address_id, type);
 
     // 5. Verify if the address was set as default successfully
     if (result.has_value() && result.value() || error == Errors::NoError)

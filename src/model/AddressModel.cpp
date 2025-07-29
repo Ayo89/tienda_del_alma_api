@@ -6,7 +6,7 @@
 AddressModel::AddressModel() {};
 //---------------->>CREATE ADDRESS<<------------------//
 std::optional<int> AddressModel::createAddress(
-    const int &user_id,
+    const int user_id,
     const std::string &first_name,
     const std::string &last_name,
     const std::string &phone,
@@ -215,8 +215,9 @@ std::optional<int> AddressModel::createAddress(
 }
 
 //---------------->>GET ALL ADDRESSES BY USER ID<<------------------//
-std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const int &user_id)
+std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const int user_id)
 {
+    std::cout << "Getting all addresses for user_id: " << user_id << std::endl;
     DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
     if (!conn || mysql_ping(conn) != 0)
@@ -250,14 +251,25 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
 
     MYSQL_BIND param[2];
     memset(param, 0, sizeof(param));
+
+    // Vincular el parámetro user_id
     param[0].buffer_type = MYSQL_TYPE_LONG;
     param[0].buffer = (void *)&user_id;
+    param[0].is_unsigned = false;
     param[1].buffer_type = MYSQL_TYPE_LONG;
     param[1].buffer = (void *)&user_id;
+    param[1].is_unsigned = false;
 
-    if (mysql_stmt_bind_param(stmt, param) != 0 || mysql_stmt_execute(stmt) != 0)
+
+
+    if (mysql_stmt_bind_param(stmt, param) != 0)
     {
-        std::cerr << "Execution failed: " << mysql_stmt_error(stmt) << std::endl;
+        std::cerr << "❌ Error binding params: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+    if (mysql_stmt_execute(stmt) != 0)
+    {
+        std::cerr << "❌ Error executing statement: " << mysql_stmt_error(stmt) << std::endl;
         return std::nullopt;
     }
 
@@ -400,7 +412,7 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
 
     if (addresses.empty())
     {
-        std::cout << "⚠️ No addresses found for user_id: " << user_id << std::endl;
+        std::cout << "⚠️ No addresses found for user id: " << user_id << std::endl;
     }
     else
     {
@@ -757,8 +769,8 @@ std::optional<Address> AddressModel::getAddressById(const int &address_id, const
 }
 //---------------->>DELETE ADDRESS BY ID AND USER ID<<------------------//
 
-std::optional<int> AddressModel::deleteAddress(
-    const int &user_id,
+std::optional<std::string> AddressModel::deleteAddress(
+    const int user_id,
     const int &address_id, const std::string &type)
 {
     // Obtener la conexión a la base de datos
@@ -811,10 +823,7 @@ std::optional<int> AddressModel::deleteAddress(
     param[0].buffer = (void *)&address_id;
     param[0].buffer_length = sizeof(address_id);
 
-    // 2. user_id
-    param[1].buffer_type = MYSQL_TYPE_LONG;
-    param[1].buffer = (void *)&user_id;
-    param[1].buffer_length = sizeof(user_id);
+    
 
     // Enlazar los parámetros a la sentencia
     if (mysql_stmt_bind_param(stmt, param) != 0)
@@ -831,18 +840,17 @@ std::optional<int> AddressModel::deleteAddress(
     }
     // Obtener la cantidad de filas afectadas. Por lo general, para un DELETE exitoso, debe ser al menos 1.
     my_ulonglong affected = mysql_stmt_affected_rows(stmt);
-    if (affected == 0)
-    {
-        std::cerr << "⚠️ Not affected rows for address_id: " << address_id << " and user_id: " << user_id << "" << std::endl;
-        return std::nullopt;
-    }
-    else
-    {
-        std::cout << "✅ Address deleted with address_id: " << address_id << " and user_id: " << user_id << "Affected rows: " << affected << std::endl;
-    }
+if (affected == 0)
+{
+    std::cerr << "⚠️ Not affected rows for address_id: " << address_id << " and user_id: " << user_id << "" << std::endl;
+    return std::nullopt;
+}
+else
+{
+    std::cout << "✅ Address deleted with address_id: " << address_id << " and user_id: " << user_id << ". Affected rows: " << affected << std::endl;
+    return std::to_string(affected); // ✅ conversión segura a string
+}
 
-    // En caso de éxito, retornamos la cantidad de filas eliminadas (usualmente 1).
-    return static_cast<int>(affected);
 } //---------------->>END DELETE ADDRESS<<------------------//
 
 std::pair<std::optional<bool>, Errors> AddressModel::setDefaultAddress(const int user_id, const int address_id, std::string &type)

@@ -6,15 +6,6 @@ web::http::http_response CarrierController::getCarriers(const web::http::http_re
 {
     web::http::http_response response;
 
-    // 1. Obtain user_id from JWT token
-    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
-    if (!optUserId.has_value()) // If token is not provided or is invalid
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token not provided or invalid"));
-        return response;
-    }
-
     // get carriers
     CarrierModel carrierModel;
     auto [optCarriers, errors] = carrierModel.getAllCarriers();
@@ -44,7 +35,7 @@ web::http::http_response CarrierController::getCarriers(const web::http::http_re
 {
     web::http::http_response response;
 
-    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
+    std::optional<std::string> optUserId = AuthUtils::getUserFromRequest(request);
     if (!optUserId.has_value()) // If token is not provided or is invalid
     {
         response.set_status_code(web::http::status_codes::Unauthorized);

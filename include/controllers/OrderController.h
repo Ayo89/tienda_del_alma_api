@@ -20,10 +20,10 @@ private:
 
 public:
     OrderController();
-    web::http::http_response createOrder(const web::http::http_request &request);
-    web::http::http_response getOrdersByUserId(const web::http::http_request &request);
-    web::http::http_response getOrderById(const web::http::http_request &request);
-    web::http::http_response updateTotalbyOrderId(const web::http::http_request &request);
+    web::http::http_response createOrder(const web::http::http_request &request, const int user_id);
+    web::http::http_response getOrdersByUserId(const web::http::http_request &request, const int user_id);
+    web::http::http_response getOrderById(const web::http::http_request &request, const int user_id);
+    web::http::http_response updateTotalbyOrderId(const web::http::http_request &request, const int user_id);
 };
 
 #endif

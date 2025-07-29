@@ -15,7 +15,7 @@ class AddressModel
 public:
     AddressModel();
     std::optional<int> createAddress(
-        const int &user_id,
+        const int user_id,
         const std::string &first_name,
         const std::string &last_name,
         const std::string &phone,
@@ -28,7 +28,7 @@ public:
         const bool &is_default = false,
         const std::string &additional_info = "");
 
-    std::optional<std::vector<Address>> getAllAddressByUserId(const int &user_id);
+    std::optional<std::vector<Address>> getAllAddressByUserId(const int user_id);
 
     std::optional<Address> getAddressById(const int &address_id, const int &user_id, const std::string &type = "");
 
@@ -46,8 +46,8 @@ public:
         const std::string &type = "",
         const std::string &additional_info = "");
 
-    std::optional<int> deleteAddress(
-        const int &user_id,
+    std::optional<std::string> deleteAddress(
+        const int user_id,
         const int &address_id,
         const std::string &type);
 

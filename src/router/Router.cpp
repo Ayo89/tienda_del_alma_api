@@ -1,6 +1,7 @@
 
 #include "router/Router.h"
 #include "server/Server.h"
+#include "middleware/AuthMiddleware.h"
 
 AuthController authController;
 AddressController addressController;
@@ -56,61 +57,132 @@ void Router::setup_routes()
         auto segments_addresses = web::uri::split_path(request.request_uri().path());
         if (method == web::http::methods::GET && path == U("/address"))
         {
-            
-            response = addressController.getAddressesByUserId(request);
+            auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
+            DecodedUser user = userOpt.value();
+            response = addressController.getAddressesByUserId(request, user.id);
         } 
         else if (method == web::http::methods::GET && path.find(U("/address/")) != std::string::npos)
         {
-            
-            response = addressController.getAddressById(request);
+                        auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
+            DecodedUser user = userOpt.value();
+            response = addressController.getAddressById(request, user.id);
         }
         else if (method == web::http::methods::POST && path == U("/address"))
         {
+            auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
             
-            response = addressController.createAddress(request);
+            DecodedUser user = userOpt.value();
+            response = addressController.createAddress(request, user.id);
         }
         else if (method == web::http::methods::PUT && path.find(U("/address/default")) != std::string::npos)
         {
-            
-            response = addressController.setDefaultAddressController(request);
+             auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
+
+            DecodedUser user = userOpt.value();
+            response = addressController.setDefaultAddressController(request, user.id);
         }
         
         else if(method == web::http::methods::PUT && path.find(U("/address")) != std::string::npos)
         {
+             auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
             
-            response = addressController.updateAddress(request);
+            DecodedUser user = userOpt.value();
+            response = addressController.updateAddress(request, user.id);
         }
         else if(method == web::http::methods::DEL && path.find(U("/address/")) != std::string::npos)
         {
-            
-            response = addressController.deleteAddress(request);
+            auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
+
+            DecodedUser user = userOpt.value();
+            response = addressController.deleteAddress(request, user.id);
         }
 
         // ORDERS
 
         if (method == web::http::methods::POST && path == U("/order"))
         {
-            
-            response = orderController.createOrder(request);
+             auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
+
+            DecodedUser user = userOpt.value();
+            response = orderController.createOrder(request, user.id);
 
         } 
         else if (method == web::http::methods::GET && path == U("/order"))
         {
-            response = orderController.getOrdersByUserId(request);
+             auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
+
+            DecodedUser user = userOpt.value();
+            response = orderController.getOrdersByUserId(request, user.id);
         } 
         else if(method == web::http::methods::GET && path.find(U("/order/")) != std::string::npos)
         {
-            response = orderController.getOrderById(request);
+             auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
+
+            DecodedUser user = userOpt.value();
+            response = orderController.getOrderById(request, user.id);
         }
         else if (method == web::http::methods::PUT)
         {
+             auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
+
+            DecodedUser user = userOpt.value();
             auto path_segments = web::uri::split_path(request.request_uri().path());
 
             if (path_segments.size() == 4 &&
                 path_segments[0] == U("order") &&
                 path_segments[2] == U("carrier"))
             {
-                response = orderController.updateTotalbyOrderId(request);
+                response = orderController.updateTotalbyOrderId(request, user.id);
             }
         }
 
@@ -123,15 +195,29 @@ void Router::setup_routes()
             // POST /paypal/{orderId}/create
             if (segments[2] == U("create"))
             {
+             auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
 
-                response = paypalController.createPayment(request);
+            DecodedUser user = userOpt.value();
+                response = paypalController.createPayment(request, user.id);
             }
             // POST /paypal/{orderId}/capture
             
             else if (segments[2] == U("capture"))
             {
+             auto userOpt = AuthMiddleware::authenticateRequest(request);
+            if (!userOpt.has_value()) {
+                response.set_status_code(status_codes::Unauthorized);
+                response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
+                return response;
+            }
 
-                response = paypalController.capturePayment(request);
+            DecodedUser user = userOpt.value();
+                response = paypalController.capturePayment(request, user.id);
             }
             else
             {

@@ -3,31 +3,9 @@
 
 OrderController::OrderController() {}
 
-web::http::http_response OrderController::createOrder(const web::http::http_request &request)
+web::http::http_response OrderController::createOrder(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
-
-    // 1. Obtain user_id from JWT token
-    auto optUserId = AuthUtils::getUserIdFromRequest(request);
-
-    // If user_id is not available in the JWT token, return Unauthorized
-    if (!optUserId)
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Unauthorized"));
-        return response;
-    }
-    int user_id;
-    try
-    {
-        user_id = std::stoi(optUserId.value()); // Convert user_id to integer
-    }
-    catch (const std::exception &)
-    {
-        response.set_status_code(web::http::status_codes::BadRequest);
-        response.set_body(U("Invalid user_id"));
-        return response;
-    }
 
     // 2. Obtain JSON body
     web::json::value body;
@@ -178,19 +156,10 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     }
 }
 
-web::http::http_response OrderController::getOrdersByUserId(const web::http::http_request &request)
+web::http::http_response OrderController::getOrdersByUserId(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
 
-    // 1. Obtain user_id from JWT token
-    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
-    if (!optUserId.has_value()) // If token is not provided or is invalid
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token not provided or invalid"));
-        return response;
-    }
-    int user_id = std::stoi(optUserId.value());
     OrderModel model;
     auto optOrders = model.getOrdersByUserId(user_id); // Get orders for the specified user
     if (!optOrders.has_value())                        // If no orders are found
@@ -235,19 +204,9 @@ web::http::http_response OrderController::getOrdersByUserId(const web::http::htt
     return response;
 }
 
-web::http::http_response OrderController::getOrderById(const web::http::http_request &request)
+web::http::http_response OrderController::getOrderById(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
-
-    // 1. Obtain user_id from JWT token
-    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
-    if (!optUserId.has_value()) // If token is not provided or is invalid
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token not provided or invalid"));
-        return response;
-    }
-    int user_id = std::stoi(optUserId.value());
 
     // 2. Get order_id from the request URI
     auto uri = request.request_uri();
@@ -294,19 +253,9 @@ web::http::http_response OrderController::getOrderById(const web::http::http_req
     return response;
 }
 
-web::http::http_response OrderController::updateTotalbyOrderId(const web::http::http_request &request)
+web::http::http_response OrderController::updateTotalbyOrderId(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
-
-    // 1. Obtain user_id from JWT token
-    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
-    if (!optUserId.has_value()) // If token is not provided or is invalid
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token not provided or invalid"));
-        return response;
-    }
-    int user_id = std::stoi(optUserId.value());
 
     // 2. Get carrier_id from the request URI
     auto uri = request.request_uri(); // Extract the URI from the request

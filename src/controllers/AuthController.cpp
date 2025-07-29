@@ -261,11 +261,7 @@ http_response AuthController::googleLogin(const http_request &request)
 
             user_id = user.id;
         }
-
-        // Crear JWT interno
-        auto token = JwtService::generateToken(std::to_string(user_id), email);
-
-        response.headers().add(U("X-Token"), utility::conversions::to_string_t(token));
+        std::cout << "llega hasta response" << std::endl;
         response.set_status_code(status_codes::OK);
         response.set_body(json::value::object({
             {U("message"), json::value::string(U("Login con Google exitoso"))},

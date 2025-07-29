@@ -3,19 +3,9 @@
 PaypalController::PaypalController() {}
 OrderModel orderModel;
 
-web::http::http_response PaypalController::createPayment(const web::http::http_request &request)
+web::http::http_response PaypalController::createPayment(const web::http::http_request &request, const int user_id)
 {
     web::http::http_response response;
-
-    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
-
-    if (!optUserId.has_value()) // If token is not provided or is invalid
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token not provided or invalid"));
-        return response;
-    }
-    int user_id = std::stoi(optUserId.value());
 
     auto segments = web::uri::split_path(request.request_uri().path());
     auto order_id_str = segments[1];
@@ -145,19 +135,10 @@ web::http::http_response PaypalController::createPayment(const web::http::http_r
     return response;
 }
 
-web::http::http_response PaypalController::capturePayment(const web::http::http_request &request)
+web::http::http_response PaypalController::capturePayment(const web::http::http_request &request, const int user_id)
 {
 
     web::http::http_response response;
-
-    std::optional<std::string> optUserId = AuthUtils::getUserIdFromRequest(request);
-    if (!optUserId.has_value()) // If token is not provided or is invalid
-    {
-        response.set_status_code(web::http::status_codes::Unauthorized);
-        response.set_body(U("Token not provided or invalid"));
-        return response;
-    }
-    int user_id = std::stoi(optUserId.value());
 
     auto segments = web::uri::split_path(request.request_uri().path());
     auto order_id_paypal = segments[1];

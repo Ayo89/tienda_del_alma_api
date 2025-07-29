@@ -42,3 +42,36 @@ std::optional<std::string> JwtService::decodeToken(const std::string &token)
         return std::nullopt;
     }
 }
+
+std::optional<DecodedUser> JwtService::verifyAndExtractUser(const std::string &token)
+{
+    try {
+        EnvLoader env(".env");
+        env.load();
+        std::string secret = env.get("JWT_SECRET", "");
+
+        auto decoded = jwt::decode(token);
+
+        // Verificar firma y claims
+        auto verifier = jwt::verify()
+            .allow_algorithm(jwt::algorithm::hs256{secret})
+            .with_issuer("tienda_del_alma");
+
+        verifier.verify(decoded);
+
+        DecodedUser user;
+        if (decoded.has_payload_claim("user_id"))
+            user.sub = decoded.get_payload_claim("user_id").as_string();
+
+        if (decoded.has_payload_claim("email"))
+            user.email = decoded.get_payload_claim("email").as_string();
+
+        user.issuer = decoded.get_issuer();
+
+        return user;
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error verificando token local: " << e.what() << std::endl;
+        return std::nullopt;
+    }
+}

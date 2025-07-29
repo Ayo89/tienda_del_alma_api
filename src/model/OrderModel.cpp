@@ -4,7 +4,7 @@ OrderModel::OrderModel() = default;
 OrderItemModel orderItemModel;
 
 std::optional<int> OrderModel::createOrder(
-    const int &user_id,
+    const int user_id,
     const int &shipping_address_id,
     const int &billing_address_id,
     const std::vector<OrderItem> &products,
@@ -196,7 +196,7 @@ std::optional<int> OrderModel::createOrder(
     return order_id;
 }
 
-std::optional<std::vector<Order>> OrderModel::getOrdersByUserId(int &user_id)
+std::optional<std::vector<Order>> OrderModel::getOrdersByUserId(int user_id)
 {
     auto &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
@@ -602,7 +602,7 @@ std::optional<Order> OrderModel::getPendingOrderByUserId(int user_id)
 }
 
 std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
-    const int &user_id,
+    const int user_id,
     const int &order_id,
     const int &shipping_address_id,
     const int &billing_address_id,
@@ -1296,7 +1296,7 @@ std::optional<Order> OrderModel::getOrderById(int order_id, int user_id)
     // Get database connection
 }
 
-std::pair<std::optional<Order>, Errors> OrderModel::updateOrderPaypalId(const int &user_id, const int &order_id, const std::string &payment_id)
+std::pair<std::optional<Order>, Errors> OrderModel::updateOrderPaypalId(const int user_id, const int &order_id, const std::string &payment_id)
 {
     // Get database connection
     DatabaseConnection &db = DatabaseConnection::getInstance();

@@ -1,10 +1,7 @@
 #pragma once
 #include <string>
+#include "entities/DecodedUser.h"
 
-struct DecodedUser {
-    std::string sub;
-    std::string email;
-};
 
 class Auth0JwtUtils {
 public:
