@@ -5,6 +5,7 @@ OrderController::OrderController() {}
 
 web::http::http_response OrderController::createOrder(const web::http::http_request &request, const int user_id)
 {
+    std::cout << "Creating order for user_id: " << user_id << std::endl;
     web::http::http_response response;
 
     // 2. Obtain JSON body
@@ -56,13 +57,33 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
     }
 
     // 5. Optional fields (e.g., shipment date, delivery date, payment method, etc.)
-    auto getOpt = [&](const utility::string_t &key)
+    auto getOpt = [&](const utility::string_t &key) -> utility::string_t
     {
-        return body.has_field(key) ? body[key].as_string() : U(""); // Return empty string if the key is not found
+        if (!body.has_field(key))
+            return utility::string_t(); // forma segura y clara
+
+        auto val = body.at(key);
+        return val.is_string() ? val.as_string() : utility::string_t();
     };
     std::string shipment_date = getOpt(U("shipment_date"));
     std::string delivery_date = getOpt(U("delivery_date"));
-    int carrier_id = body.has_field(U("carrier_id")) ? std::stoi(body[U("carrier_id")].as_string()) : 1;
+    int carrier_id = 1; // valor por defecto
+    if (body.has_field(U("carrier_id")))
+    {
+        auto val = body.at(U("carrier_id"));
+        if (val.is_integer())
+        {
+            carrier_id = val.as_integer();
+        }
+        else if (val.is_string())
+        {
+            carrier_id = std::stoi(val.as_string());
+        }
+        else
+        {
+            std::cerr << "[createOrder] Campo 'carrier_id' no es string ni int\n";
+        }
+    }
     std::string tracking_url = getOpt(U("tracking_url"));
     std::string tracking_number = getOpt(U("tracking_number"));
     std::string payment_method = getOpt(U("payment_method"));

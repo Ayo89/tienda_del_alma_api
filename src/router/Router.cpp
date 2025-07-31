@@ -75,8 +75,10 @@ void Router::setup_routes()
                         response.set_body(json::value::object({ {U("error"), json::value::string(U("No autorizado"))} }));
                     } else {
                         DecodedUser user = userOpt.value();
-                        if (method == web::http::methods::POST && path == U("/order"))
-                            response = orderController.createOrder(request, user.id);
+                        if (method == web::http::methods::POST && path == U("/order")){
+                            std::cout << "Creating order in router user_id: " << user.id << std::endl;
+                                response = orderController.createOrder(request, user.id);
+                        }
                         else if (method == web::http::methods::GET && path == U("/order"))
                             response = orderController.getOrdersByUserId(request, user.id);
                         else if (method == web::http::methods::GET)
