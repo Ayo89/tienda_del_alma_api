@@ -221,3 +221,110 @@ bool ProductModel::insertSampleProducts()
     std::cout << "✅ Productos e inventario insertados correctamente." << std::endl;
     return true;
 }
+
+std::optional<Product> ProductModel::getProductById(int id)
+{
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn || mysql_ping(conn) != 0)
+    {
+        std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
+        return std::nullopt;
+    }
+
+    const char *query =
+        "SELECT id, sku, name, description, price, image_url, category_id "
+        "FROM products WHERE id = ?";
+
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    if (!stmt)
+    {
+        std::cerr << "Statement initialization failed: " << mysql_error(conn) << std::endl;
+        return std::nullopt;
+    }
+
+    auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+
+    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    {
+        std::cerr << "Statement preparation failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    // Bind del parámetro
+    MYSQL_BIND param{};
+    param.buffer_type = MYSQL_TYPE_LONG;
+    param.buffer = (void *)&id;
+
+    if (mysql_stmt_bind_param(stmt, &param) != 0)
+    {
+        std::cerr << "Parameter binding failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    if (mysql_stmt_execute(stmt) != 0)
+    {
+        std::cerr << "Execution failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    MYSQL_BIND result[7];
+    memset(result, 0, sizeof(result));
+
+    int product_id = 0, category_id = 0;
+    char sku[50] = {0}, name[100] = {0}, description[255] = {0}, image_url[255] = {0};
+    double price = 0.0;
+    unsigned long len[7] = {0};
+    bool is_null[7] = {0};
+    bool error[7] = {0};
+
+    result[0].buffer_type = MYSQL_TYPE_LONG;
+    result[0].buffer = (void *)&product_id;
+
+    result[1].buffer_type = MYSQL_TYPE_STRING;
+    result[1].buffer = (void *)sku;
+    result[1].buffer_length = sizeof(sku);
+    result[1].length = &len[1];
+
+    result[2].buffer_type = MYSQL_TYPE_STRING;
+    result[2].buffer = (void *)name;
+    result[2].buffer_length = sizeof(name);
+    result[2].length = &len[2];
+
+    result[3].buffer_type = MYSQL_TYPE_STRING;
+    result[3].buffer = (void *)description;
+    result[3].buffer_length = sizeof(description);
+    result[3].length = &len[3];
+
+    result[4].buffer_type = MYSQL_TYPE_DOUBLE;
+    result[4].buffer = (void *)&price;
+
+    result[5].buffer_type = MYSQL_TYPE_STRING;
+    result[5].buffer = (void *)image_url;
+    result[5].buffer_length = sizeof(image_url);
+    result[5].length = &len[5];
+
+    result[6].buffer_type = MYSQL_TYPE_LONG;
+    result[6].buffer = (void *)&category_id;
+
+    if (mysql_stmt_bind_result(stmt, result) != 0)
+    {
+        std::cerr << "Result binding failed: " << mysql_stmt_error(stmt) << std::endl;
+        return std::nullopt;
+    }
+
+    if (mysql_stmt_fetch(stmt) == 0)
+    {
+        Product product;
+        product.id = product_id;
+        product.sku = std::string(sku, len[1]);
+        product.name = std::string(name, len[2]);
+        product.description = std::string(description, len[3]);
+        product.price = price;
+        product.image_url = std::string(image_url, len[5]);
+        product.category_id = category_id;
+        return product;
+    }
+
+    return std::nullopt; // no encontrado
+}

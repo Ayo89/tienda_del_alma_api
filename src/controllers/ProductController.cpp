@@ -1,6 +1,5 @@
 #include "controllers/ProductController.h"
 
-
 using namespace web;
 using namespace web::http;
 
@@ -59,6 +58,46 @@ http_response ProductController::getAllProducts()
         response.set_body(json::value::object({{U("message"), json::value::string(U("Error inesperado al obtener productos"))}}));
         std::cout << "Excepción en getAllProducts: " << e.what() << std::endl;
     }
+    response.headers().set_content_type(U("application/json"));
+    return response;
+}
+
+http_response ProductController::getProductById(int id)
+{
+    http_response response;
+    try
+    {
+        auto productOpt = model.getProductById(id);
+
+        if (!productOpt.has_value())
+        {
+            response.set_status_code(status_codes::NotFound);
+            response.set_body(json::value::object({{U("message"), json::value::string(U("Producto no encontrado"))}}));
+        }
+        else
+        {
+            const auto &product = productOpt.value();
+
+            json::value jsonProduct;
+            jsonProduct[U("id")] = json::value::number(product.id);
+            jsonProduct[U("sku")] = json::value::string(utility::conversions::to_string_t(product.sku));
+            jsonProduct[U("name")] = json::value::string(utility::conversions::to_string_t(product.name));
+            jsonProduct[U("description")] = json::value::string(utility::conversions::to_string_t(product.description));
+            jsonProduct[U("price")] = json::value::number(product.price);
+            jsonProduct[U("image_url")] = json::value::string(utility::conversions::to_string_t(product.image_url));
+            jsonProduct[U("category_id")] = json::value::number(product.category_id);
+
+            response.set_status_code(status_codes::OK);
+            response.set_body(jsonProduct);
+        }
+    }
+    catch (const std::exception &e)
+    {
+        response.set_status_code(status_codes::InternalError);
+        response.set_body(json::value::object({{U("message"), json::value::string(U("Error inesperado al obtener el producto"))}}));
+        std::cerr << "Excepción en getProductById: " << e.what() << std::endl;
+    }
+
     response.headers().set_content_type(U("application/json"));
     return response;
 }

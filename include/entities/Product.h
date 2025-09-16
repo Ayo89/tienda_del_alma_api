@@ -9,7 +9,6 @@ struct Product
     std::string sku;
     std::string name;
     std::string description;
-    
     double price;
     std::string image_url;
     int category_id;

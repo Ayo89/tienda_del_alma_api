@@ -12,6 +12,7 @@
 #include "controllers/PaypalController.h"
 #include "controllers/CarrierController.h"
 #include "controllers/CategoryController.h"
+#include "controllers/InventoryController.h"
 #include "middleware/AuthMiddleware.h"
 
 

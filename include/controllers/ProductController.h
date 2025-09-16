@@ -17,6 +17,7 @@ private:
 public:
     ProductController();
     web::http::http_response getAllProducts();
+    web::http::http_response getProductById(int id);
 };
 
 #endif

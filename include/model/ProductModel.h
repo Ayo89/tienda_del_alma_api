@@ -15,6 +15,7 @@ public:
     ProductModel();
     bool insertSampleProducts();
     std::optional<std::vector<Product>> getAllProducts();
+    std::optional<Product> getProductById(int id);
 };
 
 #endif // PRODUCTMODEL_H

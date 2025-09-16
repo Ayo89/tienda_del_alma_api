@@ -39,9 +39,59 @@ void Router::setup_routes()
 
                 // PRODUCTS
                 else if (method == web::http::methods::GET && path == U("/products")) {
-                    ProductController model;
-                    response = model.getAllProducts();
+                    ProductController productController;
+                    response = productController.getAllProducts();
                 }
+                // PRODUCT BY ID
+                else if (method == web::http::methods::GET && path.find(U("/products/")) == 0) {
+                    ProductController productController;
+                    try {
+                        auto idStr = utility::conversions::to_utf8string(path.substr(std::string("/products/").size()));
+                        int id = std::stoi(idStr);
+                        response = productController.getProductById(id);
+                    } catch (...) {
+                        response.set_status_code(web::http::status_codes::BadRequest);
+                        response.set_body(U("Invalid product id"));
+                    }
+                }
+
+                // INVENTORY - GET ALL
+                else if (method == web::http::methods::GET && path == U("/inventory")) {
+                    InventoryController inventoryController;
+                    response = inventoryController.getAllInventory(request);
+                }
+
+                // INVENTORY - GET BY ID
+                else if (method == web::http::methods::GET && path.rfind(U("/inventory/"), 0) == 0) {
+                    // Extraer el número después de "/inventory/"
+                    auto idStr = utility::conversions::to_utf8string(path);
+                    idStr = idStr.substr(std::string("/inventory/").size());
+
+                    try {
+                        int productId = std::stoi(idStr);
+                        InventoryController inventoryController;
+                        response = inventoryController.getInventoryByProductId(request, productId);
+                    } catch (...) {
+                        response.set_status_code(web::http::status_codes::BadRequest);
+                        response.set_body(U("Invalid product id"));
+                    }
+                }
+
+                // INVENTORY - UPDATE (PUT)
+                else if (method == web::http::methods::PUT && path.rfind(U("/inventory/"), 0) == 0) {
+                    auto idStr = utility::conversions::to_utf8string(path);
+                    idStr = idStr.substr(std::string("/inventory/").size());
+
+                    try {
+                        int productId = std::stoi(idStr);
+                        InventoryController inventoryController;
+                        response = inventoryController.updateQuantityByProductId(request, productId);
+                    } catch (...) {
+                        response.set_status_code(web::http::status_codes::BadRequest);
+                        response.set_body(U("Invalid product id"));
+                    }
+                }
+
 
                 // SHIPPING ADDRESS
                 auto segments_addresses = web::uri::split_path(request.request_uri().path());
