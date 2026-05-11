@@ -231,66 +231,84 @@ web::http::http_response AddressController::deleteAddress(const web::http::http_
 {
     web::http::http_response response;
 
-    // 2. Obtainer address_id from URL
-    auto path = request.request_uri().path();
-    auto address_id_str = path.substr(path.find_last_of('/') + 1);
-    int address_id = std::stoi(address_id_str);
-    auto query = web::uri::split_query(request.request_uri().query());
-    std::string type = "shipping"; // valor por defecto
-
-    auto it = query.find("type");
-    if (it != query.end())
-    {
-        type = it->second;
-    }
-    auto allAddressesOpt = model.getAllAddressByUserId(user_id);
-
-    if (!allAddressesOpt.has_value())
-    {
-
-        response.set_status_code(web::http::status_codes::InternalError);
-        response.set_body(U("Failed to retrieve addresses"));
-        return response;
-    }
-
-    std::vector<Address> addresses = allAddressesOpt.value();
-
-    int billingCount = 0;
-    int shippingCount = 0;
-
-    for (const auto &addr : addresses)
-    {
-        if (addr.type == "billing")
-        {
-            billingCount++;
+    try {
+        // 1. Obtener y limpiar el path
+        auto relative_uri = request.relative_uri();
+        std::string full_path = utility::conversions::to_utf8string(relative_uri.path());
+        
+        // Extraer el ID (lo que está después de la última '/')
+        size_t last_slash = full_path.find_last_of('/');
+        if (last_slash == std::string::npos) {
+            throw std::runtime_error("ID no encontrado en la URL");
         }
-        else if (addr.type == "shipping")
-        {
-            shippingCount++;
+        std::string address_id_str = full_path.substr(last_slash + 1);
+
+        // IMPORTANTE: Si std::stoi recibe "5?type=shipping", falla. 
+        // Limpiamos cualquier rastro de query string que haya quedado en el path string.
+        size_t query_pos = address_id_str.find('?');
+        if (query_pos != std::string::npos) {
+            address_id_str = address_id_str.substr(0, query_pos);
         }
-    }
-    // 3. Check if the address is the last one of its type
-    if (billingCount <= 1 && type == "billing" || shippingCount <= 1 && type == "shipping")
-    {
+
+        int address_id = std::stoi(address_id_str);
+        
+        // 2. Obtener el tipo de la query string
+        auto query = web::uri::split_query(relative_uri.query());
+        std::string type = "shipping"; // valor por defecto
+        auto it = query.find(U("type"));
+        if (it != query.end()) {
+            type = utility::conversions::to_utf8string(it->second);
+        }
+
+        std::cout << "[DEBUG] Intentando borrar ID: " << address_id << " Tipo: " << type << " Usuario: " << user_id << std::endl;
+
+        // 3. Obtener direcciones actuales para validar
+        auto allAddressesOpt = model.getAllAddressByUserId(user_id);
+        if (!allAddressesOpt.has_value()) {
+            response.set_status_code(web::http::status_codes::InternalError);
+            response.set_body(U("No se pudieron recuperar las direcciones del servidor"));
+            return response;
+        }
+
+        std::vector<Address> addresses = allAddressesOpt.value();
+        int billingCount = 0;
+        int shippingCount = 0;
+
+        for (const auto &addr : addresses) {
+            if (addr.type == "billing") billingCount++;
+            else if (addr.type == "shipping") shippingCount++;
+        }
+
+        // 4. Validar si es la última dirección (CON PARÉNTESIS CORRECTOS)
+        if ((type == "billing" && billingCount <= 1) || (type == "shipping" && shippingCount <= 1)) {
+            std::cout << "⚠️ Bloqueado: Es la última dirección de tipo " << type << std::endl;
+            response.set_status_code(web::http::status_codes::BadRequest); // 400 es más apropiado que 500
+            response.set_body(U("No puedes eliminar la última dirección de este tipo"));
+            return response;
+        }
+
+        // 5. Ejecutar borrado
+        auto result = model.deleteAddress(user_id, address_id, type);
+
+        if (!result.has_value()) {
+            std::cout << "❌ Error en el modelo: Posible conflicto de clave foránea o ID inexistente" << std::endl;
+            response.set_status_code(web::http::status_codes::Conflict); // 409
+            response.set_body(U("No se pudo eliminar. Verifique que la dirección no esté asociada a un pedido."));
+            return response;
+        }
+
+        // 6. Éxito
+        std::cout << "✅ Dirección eliminada con éxito" << std::endl;
+        response.set_status_code(web::http::status_codes::OK);
+        response.set_body(U("Dirección eliminada correctamente"));
+        return response;
+
+    } catch (const std::exception &e) {
+        std::cerr << "❌ EXCEPCIÓN EN deleteAddress: " << e.what() << std::endl;
         response.set_status_code(web::http::status_codes::InternalError);
-        response.set_body(U("❌ You Can't Delete The Last Address"));
+        response.set_body(U("Error interno al procesar el borrado"));
         return response;
     }
-    // 4. Execute deleteAddress method
-    auto result = model.deleteAddress(user_id, address_id, type);
-
-    // 5. Verify if the address was deleted successfully
-    if (!result.has_value())
-    {
-        response.set_status_code(web::http::status_codes::InternalError);
-        response.set_body(U("Failed to delete address"));
-        return response;
-    }
-
-    // 6. Responder con éxito
-    response.set_status_code(web::http::status_codes::OK);
-    response.set_body(U("Address deleted successfully"));
-    return response;
 }
 
 web::http::http_response AddressController::setDefaultAddressController(const web::http::http_request &request, const int user_id)

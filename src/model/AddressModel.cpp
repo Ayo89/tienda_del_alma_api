@@ -260,8 +260,6 @@ std::optional<std::vector<Address>> AddressModel::getAllAddressByUserId(const in
     param[1].buffer = (void *)&user_id;
     param[1].is_unsigned = false;
 
-
-
     if (mysql_stmt_bind_param(stmt, param) != 0)
     {
         std::cerr << "❌ Error binding params: " << mysql_stmt_error(stmt) << std::endl;
@@ -822,8 +820,11 @@ std::optional<std::string> AddressModel::deleteAddress(
     param[0].buffer_type = MYSQL_TYPE_LONG;
     param[0].buffer = (void *)&address_id;
     param[0].buffer_length = sizeof(address_id);
-
-    
+    param[1].buffer_type = MYSQL_TYPE_LONG;
+    param[1].buffer = (void *)&user_id; // Pasamos la dirección del user_id que recibes por argumento
+    param[1].is_unsigned = false;
+    param[1].is_null = 0;
+    param[1].length = 0;
 
     // Enlazar los parámetros a la sentencia
     if (mysql_stmt_bind_param(stmt, param) != 0)
@@ -840,16 +841,16 @@ std::optional<std::string> AddressModel::deleteAddress(
     }
     // Obtener la cantidad de filas afectadas. Por lo general, para un DELETE exitoso, debe ser al menos 1.
     my_ulonglong affected = mysql_stmt_affected_rows(stmt);
-if (affected == 0)
-{
-    std::cerr << "⚠️ Not affected rows for address_id: " << address_id << " and user_id: " << user_id << "" << std::endl;
-    return std::nullopt;
-}
-else
-{
-    std::cout << "✅ Address deleted with address_id: " << address_id << " and user_id: " << user_id << ". Affected rows: " << affected << std::endl;
-    return std::to_string(affected); // ✅ conversión segura a string
-}
+    if (affected == 0)
+    {
+        std::cerr << "⚠️ Not affected rows for address_id: " << address_id << " and user_id: " << user_id << "" << std::endl;
+        return std::nullopt;
+    }
+    else
+    {
+        std::cout << "✅ Address deleted with address_id: " << address_id << " and user_id: " << user_id << ". Affected rows: " << affected << std::endl;
+        return std::to_string(affected); // ✅ conversión segura a string
+    }
 
 } //---------------->>END DELETE ADDRESS<<------------------//
 

@@ -224,7 +224,7 @@ http_response AuthController::googleLogin(const http_request &request)
         auto decoded = Auth0JwtUtils::verifyAndExtractUser(
             id_token,
             publicKeyPem,
-            env.get("GOOGLE_CLIENT_ID"),
+            env.get("AUTH0_AUDIENCE"),
             env.get("AUTH0_ISSUER")
         );
 
