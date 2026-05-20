@@ -12,13 +12,6 @@ std::optional<int> OrderItemModel::createOrderItem(const std::vector<OrderItem> 
         return std::nullopt; // Return null if no connection
     }
 
-    // Start a transaction
-    if (mysql_query(conn, "START TRANSACTION") != 0)
-    {
-        std::cerr << "Error starting transaction: " << mysql_error(conn) << std::endl;
-        return std::nullopt;
-    }
-
     // SQL query for inserting new items into order_items table
     const char *sql =
         "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
@@ -83,13 +76,7 @@ std::optional<int> OrderItemModel::createOrderItem(const std::vector<OrderItem> 
         }
     }
 
-    // Commit the transaction
-    if (mysql_query(conn, "COMMIT") != 0)
-    {
-        std::cerr << "Error committing transaction: " << mysql_error(conn) << std::endl;
-        mysql_query(conn, "ROLLBACK"); // Rollback transaction in case of error
-        return std::nullopt;
-    }
+
 
     // Return the last inserted ID
     return mysql_insert_id(conn);
@@ -105,7 +92,7 @@ std::optional<int> OrderItemModel::updateOrderItems(const std::vector<OrderItem>
         std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
         return std::nullopt; // Return null if no connection
     }
-
+    mysql_query(conn, "ROLLBACK");
     // Start a transaction
     if (mysql_query(conn, "START TRANSACTION") != 0)
     {
@@ -199,7 +186,7 @@ std::optional<int> OrderItemModel::syncOrderItems(const std::vector<OrderItem> &
         std::cerr << "Error: No active database connection" << std::endl;
         return std::nullopt;
     }
-
+    mysql_query(conn, "ROLLBACK");
     // Start a transaction
     if (mysql_query(conn, "START TRANSACTION") != 0)
     {

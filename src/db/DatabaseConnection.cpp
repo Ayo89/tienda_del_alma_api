@@ -60,6 +60,8 @@ bool DatabaseConnection::connect()
         return false;
     }
 
+    mysql_query(connection, "SET SESSION innodb_lock_wait_timeout = 5");
+    mysql_query(connection, "SET SESSION transaction_isolation = 'READ-COMMITTED'");
     return true;
 }
 

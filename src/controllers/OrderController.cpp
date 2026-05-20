@@ -1,5 +1,6 @@
 #include "controllers/OrderController.h"
 #include "model/OrderModel.h" // Make sure to include the model
+#include "model/OrderItemModel.h"
 
 OrderController::OrderController() {}
 
@@ -287,7 +288,7 @@ web::http::http_response OrderController::updateTotalbyOrderId(const web::http::
         response.set_body(U("Invalid URI format. Expected: /order/{id}/carrier/{id}"));
         return response;
     }
-
+    std::cout << "llegando a updateTotalbyOrderId: ";
     int order_id = std::stoi(path_segments[1]);
     int carrier_id = std::stoi(path_segments[3]);
     std::cout << "order_id: " << order_id << std::endl;
@@ -327,7 +328,16 @@ web::http::http_response OrderController::updateTotalbyOrderId(const web::http::
         std::cout << "Carrier id updated successfully" << std::endl;
     }
 
-    double newTotal = optOrder->total + optCarrier->price;
+    OrderItemModel orderItemModel;
+    auto [optItems, itemsError] = orderItemModel.getOrderItemsByOrderId(order_id);
+    if (!optItems.has_value())
+    {
+        response.set_status_code(web::http::status_codes::InternalError);
+        response.set_body(U("Failed to get order items"));
+        return response;
+    }
+    double subtotal = orderItemModel.calculateOrderTotal(optItems.value());
+    double newTotal = std::round((subtotal + optCarrier->price) * 100.0) / 100.0;
 
     // 5 call updateOrderTotal
     auto [result, errorsUpdateOrderTotal] = orderModel.updateOrderTotal(order_id, newTotal);
