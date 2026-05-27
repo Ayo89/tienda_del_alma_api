@@ -726,6 +726,7 @@ std::pair<std::optional<Order>, Errors> OrderModel::updateOrder(
         if (mysql_query(conn, "START TRANSACTION") != 0)
         {
             std::cerr << "Error starting transaction update table: " << mysql_error(conn) << std::endl;
+            mysql_query(conn, "ROLLBACK");
             return {std::nullopt, Errors::TransactionStartFailed};
         }
 
@@ -1243,7 +1244,16 @@ std::pair<bool, Errors> OrderModel::updateOrderTotal(int order_id, double total)
 
     if (mysql_stmt_affected_rows(stmt) == 0)
     {
-        std::cerr << "No rows updated in updateOrderTotal: " << mysql_stmt_error(stmt) << std::endl;
+        std::cerr << "No rows updated in updateOrderTotal" << std::endl;
+
+        if (mysql_query(conn, "COMMIT") != 0)
+        {
+            std::cerr << "Commit failed in updateOrderTotal NoRowsAffected: "
+                      << mysql_error(conn) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return {false, Errors::CommitFailed};
+        }
+
         return {true, Errors::NoRowsAffected};
     }
 
@@ -1267,7 +1277,7 @@ std::pair<bool, Errors> OrderModel::updateCarrierId(int order_id, int carrier_id
         std::cerr << "Error: No active database connection: " << mysql_error(conn) << std::endl;
         return {false, Errors::DatabaseConnectionFailed};
     }
-    
+    mysql_query(conn, "ROLLBACK");
     if (mysql_query(conn, "START TRANSACTION") != 0)
     {
         std::cerr << "Error starting transaction in updateOrderTotal: " << mysql_error(conn) << std::endl;
@@ -1323,6 +1333,16 @@ std::pair<bool, Errors> OrderModel::updateCarrierId(int order_id, int carrier_id
 
     if (mysql_stmt_affected_rows(stmt) == 0)
     {
+        std::cerr << "No rows updated in updateCarrierId" << std::endl;
+
+        if (mysql_query(conn, "COMMIT") != 0)
+        {
+            std::cerr << "Commit failed in updateCarrierId NoRowsAffected: "
+                      << mysql_error(conn) << std::endl;
+            mysql_query(conn, "ROLLBACK");
+            return {false, Errors::CommitFailed};
+        }
+
         return {true, Errors::NoRowsAffected};
     }
 
