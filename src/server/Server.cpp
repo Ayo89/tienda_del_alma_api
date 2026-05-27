@@ -27,7 +27,7 @@ void Server::stop()
 
 void Server::add_cors_headers(http_response &response)
 {
-    response.headers().add(U("Access-Control-Allow-Origin"), U("https://tiendadelalma.netlify.app/"));
+    response.headers().add(U("Access-Control-Allow-Origin"), U("https://tiendadelalma.netlify.app"));
     response.headers().add(U("Access-Control-Allow-Methods"), U("GET, POST, PUT, DELETE, OPTIONS"));
     response.headers().add(U("Access-Control-Allow-Headers"), U("Content-Type, Authorization"));
     response.headers().add(U("Access-Control-Allow-Credentials"), U("true"));
