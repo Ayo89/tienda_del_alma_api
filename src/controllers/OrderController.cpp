@@ -113,13 +113,46 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
             payment_method,
             payment_status);
 
-        std::optional<int> optOrderItemId = orderItemModel.syncOrderItems(products, existingOrder.id); // Sync products with the order
+        std::optional<int> optOrderItemId = orderItemModel.syncOrderItems(products, existingOrder.id);
 
         web::json::value respBody;
+
         if (error == Errors::NoError || error == Errors::NoRowsAffected)
         {
+            CarrierModel carrierModel;
+            auto [optCarrier, errorsGetCarrier] = carrierModel.getCarrierById(carrier_id);
+
+            if (!optCarrier.has_value())
+            {
+                response.set_status_code(web::http::status_codes::NotFound);
+                response.set_body(U("Carrier not found"));
+                return response;
+            }
+
+            auto [optItems, itemsError] = orderItemModel.getOrderItemsByOrderId(existingOrder.id);
+
+            if (!optItems.has_value())
+            {
+                response.set_status_code(web::http::status_codes::InternalError);
+                response.set_body(U("Failed to get order items after sync"));
+                return response;
+            }
+
+            double subtotal = orderItemModel.calculateOrderTotal(optItems.value());
+            double newTotal = std::round((subtotal + optCarrier->price) * 100.0) / 100.0;
+
+            auto [result, errorsUpdateOrderTotal] = orderModel.updateOrderTotal(existingOrder.id, newTotal);
+
+            if (!result)
+            {
+                response.set_status_code(web::http::status_codes::InternalError);
+                response.set_body(U("Failed to update order total"));
+                return response;
+            }
+
             response.set_status_code(web::http::status_codes::OK);
-            respBody[U("order_id")] = web::json::value::number(updatedOrder.value().id);
+            respBody[U("order_id")] = web::json::value::number(existingOrder.id);
+            respBody[U("total")] = web::json::value::number(newTotal);
 
             if (error == Errors::NoRowsAffected)
             {
@@ -136,7 +169,6 @@ web::http::http_response OrderController::createOrder(const web::http::http_requ
         }
         else
         {
-
             response.set_status_code(web::http::status_codes::InternalError);
             response.set_body(U("Error updating order"));
             return response;
