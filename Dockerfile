@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY --from=builder /app/build/tienda_del_alma /app/tienda_del_alma
+COPY --from=builder /app/config /app/config
 
 EXPOSE 8080
 
