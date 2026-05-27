@@ -2,16 +2,16 @@
 
 #include <string>
 
-
-struct DecodedUser {
-    int id;                  // ID del usuario
-    std::string sub;            // ID único de Google
+struct DecodedUser
+{
+    int id = 0;
+    std::string sub;
     std::string email;
-    std::string issuer;        // emisor del token (ej. "accounts.google.com")
+    std::string issuer;
     bool email_verified = false;
-    std::string name;           // nombre completo
-    std::string given_name;     // nombre (de pila)
-    std::string family_name;    // apellido
-    std::string picture;        // URL de la foto de perfil
-    std::string locale;         // idioma del perfil (ej. "es")
+    std::string name;
+    std::string given_name;
+    std::string family_name;
+    std::string picture;
+    std::string locale;
 };

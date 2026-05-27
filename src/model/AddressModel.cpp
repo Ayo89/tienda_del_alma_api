@@ -20,7 +20,7 @@ std::optional<int> AddressModel::createAddress(
     const std::string &additional_info)
 {
     // Validaciones básicas (additional_info es opcional)
-    if (user_id == 0 || first_name.empty() || last_name.empty() || phone.empty() ||
+    if (user_id <= 0 || first_name.empty() || last_name.empty() || phone.empty() ||
         street.empty() || city.empty() || province.empty() || postal_code.empty() || country.empty())
     {
         std::cerr << "Error: Required fields cannot be empty" << std::endl;

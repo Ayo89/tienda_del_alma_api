@@ -1,16 +1,22 @@
 #include "server/Server.h"
 #include "router/Router.h"
-#include "db/DatabaseConnection.h" // Incluimos el Singleton
+#include "db/DatabaseConnection.h"
 #include <iostream>
 
-Server::Server(const utility::string_t &address) : listener_(address), router_(listener_) {};
+Server::Server(const utility::string_t &address)
+    : listener_(address), router_(listener_) {}
 
 void Server::start()
 {
-    router_.setup_routes(); // El Router ahora obtiene la conexión si la necesita
+    router_.setup_routes();
+
     listener_.open()
-        .then([]()
-              { std::wcout << L"Servidor iniciado en http://localhost:8080" << std::endl; })
+        .then([this]()
+              {
+                  std::cout << "Servidor iniciado en "
+                            << listener_.uri().to_string()
+                            << std::endl;
+              })
         .wait();
 }
 
@@ -29,6 +35,6 @@ void Server::add_cors_headers(http_response &response)
 
 void Server::add_cookie(http_response &response, const std::string &cookie_value)
 {
-    std::string cookie = "token=" + cookie_value + ";   SameSite=none; Path=/";
+    std::string cookie = "token=" + cookie_value + "; HttpOnly; SameSite=Lax; Path=/";
     response.headers().add(U("Set-Cookie"), utility::conversions::to_string_t(cookie));
 }

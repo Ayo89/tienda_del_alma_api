@@ -1,0 +1,7 @@
+build/
+.env
+.env.*
+.git/
+.vscode/
+.idea/
+*.log

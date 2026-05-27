@@ -45,32 +45,48 @@ std::optional<std::string> JwtService::decodeToken(const std::string &token)
 
 std::optional<DecodedUser> JwtService::verifyAndExtractUser(const std::string &token)
 {
-    try {
+    try
+    {
         EnvLoader env(".env");
         env.load();
+
         std::string secret = env.get("JWT_SECRET", "");
+        if (secret.empty())
+        {
+            throw std::runtime_error("JWT_SECRET no está configurado");
+        }
 
         auto decoded = jwt::decode(token);
 
-        // Verificar firma y claims
         auto verifier = jwt::verify()
-            .allow_algorithm(jwt::algorithm::hs256{secret})
-            .with_issuer("tienda_del_alma");
+                            .allow_algorithm(jwt::algorithm::hs256{secret})
+                            .with_issuer("tienda_del_alma");
 
         verifier.verify(decoded);
 
-        DecodedUser user;
+        DecodedUser user{};
+
         if (decoded.has_payload_claim("user_id"))
+        {
             user.sub = decoded.get_payload_claim("user_id").as_string();
+            user.id = std::stoi(user.sub);
+        }
+        else
+        {
+            throw std::runtime_error("El token local no contiene user_id");
+        }
 
         if (decoded.has_payload_claim("email"))
+        {
             user.email = decoded.get_payload_claim("email").as_string();
+        }
 
         user.issuer = decoded.get_issuer();
 
         return user;
-
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "Error verificando token local: " << e.what() << std::endl;
         return std::nullopt;
     }

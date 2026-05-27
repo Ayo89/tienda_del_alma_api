@@ -48,7 +48,26 @@ http_response AuthController::signup(const http_request &request)
                             // El usuario NO existe → crear nuevo usuario
                             user_id = this->userController.createUser(first_name, hashed, email, "local", "");  
                             std::cout<<user_id.value()<<std::endl;    
-                        }else {}
+                        }else if (userOpt->auth_provider == "google") {
+                            std::cerr << "Este usuario ya existe registrado en google" << userOpt->auth_provider<< ' ' << std::endl;
+                            response.set_status_code(status_codes::Conflict); // 409 Conflict
+                            response.set_body(json::value::object({
+                                {U("auth_provider"), json::value::string(userOpt->auth_provider)},
+                                {U("error"), json::value::string(U("Este email ya está registrado. Inicia sesión con google."))}
+                            }));
+                            return;
+                        }else if (userOpt->auth_provider == "local")
+                        {
+                            std::cerr << "Este usuario ya existe registrado localmente: "
+                                    << email << std::endl;
+
+                            response.set_status_code(status_codes::Conflict);
+                            response.set_body(json::value::object({
+                                {U("auth_provider"), json::value::string(U("local"))},
+                                {U("error"), json::value::string(U("Este email ya está registrado. Inicia sesión con email y contraseña."))}
+                            }));
+                            return;
+                        }
                         // Llamar al controlador de usuarios
                         if (user_id.has_value()) {
                             std::string secret = env.get("JWT_SECRET", "");
@@ -204,13 +223,15 @@ http_response AuthController::googleLogin(const http_request &request)
 
     std::cout << "📥 [googleLogin] Entrando..." << std::endl;
 
-    try {
+    try
+    {
         auto body = request.extract_json().get();
 
-        if (!body.has_field(U("id_token"))) {
+        if (!body.has_field(U("id_token")))
+        {
             std::cerr << "❌ [googleLogin] No se encontró 'id_token' en el body" << std::endl;
             response.set_status_code(status_codes::BadRequest);
-            response.set_body(json::value::object({ {U("error"), json::value::string(U("Falta el id_token"))} }));
+            response.set_body(json::value::object({{U("error"), json::value::string(U("Falta el id_token"))}}));
             return response;
         }
 
@@ -225,8 +246,7 @@ http_response AuthController::googleLogin(const http_request &request)
             id_token,
             publicKeyPem,
             env.get("AUTH0_AUDIENCE"),
-            env.get("AUTH0_ISSUER")
-        );
+            env.get("AUTH0_ISSUER"));
 
         std::string email = decoded.email;
         std::string sub = decoded.sub;
@@ -238,29 +258,35 @@ http_response AuthController::googleLogin(const http_request &request)
         auto userOpt = this->userController.getUserByEmail(email);
         int user_id;
 
-        if (!userOpt.has_value()) {
+        if (!userOpt.has_value())
+        {
             std::cout << "👤 [googleLogin] Usuario no encontrado. Creando nuevo..." << std::endl;
             auto created = this->userController.createUser(name, "", email, "google", sub);
-            if (!created.has_value()) {
+            if (!created.has_value())
+            {
                 std::cerr << "❌ [googleLogin] Error al crear usuario" << std::endl;
                 response.set_status_code(status_codes::InternalError);
-                response.set_body(json::value::object({ {U("error"), json::value::string(U("Error al crear usuario"))} }));
+                response.set_body(json::value::object({{U("error"), json::value::string(U("Error al crear usuario"))}}));
                 return response;
             }
             user_id = created.value();
-        } else {
+        }
+        else
+        {
             auto user = userOpt.value();
             std::cout << "👤 [googleLogin] Usuario encontrado. Provider: " << user.auth_provider << std::endl;
 
-            if (user.auth_provider != "google") {
+            if (user.auth_provider != "google")
+            {
                 response.set_status_code(status_codes::Conflict);
-                response.set_body(json::value::object({ {U("error"), json::value::string(U("Este email ya está registrado con otro método de autenticación. Inicia sesión con tu contraseña."))} }));
+                response.set_body(json::value::object({{U("error"), json::value::string(U("Este email ya está registrado con otro método de autenticación. Inicia sesión con tu contraseña."))}}));
                 return response;
             }
 
-            if (!user.auth_id.empty() && user.auth_id != sub) {
+            if (!user.auth_id.empty() && user.auth_id != sub)
+            {
                 response.set_status_code(status_codes::Unauthorized);
-                response.set_body(json::value::object({ {U("error"), json::value::string(U("El identificador de Google no coincide."))} }));
+                response.set_body(json::value::object({{U("error"), json::value::string(U("El identificador de Google no coincide."))}}));
                 return response;
             }
 
@@ -270,19 +296,15 @@ http_response AuthController::googleLogin(const http_request &request)
         std::cout << "✅ [googleLogin] Usuario procesado. ID: " << user_id << std::endl;
 
         response.set_status_code(status_codes::OK);
-        response.set_body(json::value::object({
-            {U("message"), json::value::string(U("Login con Google exitoso"))},
-            {U("success"), json::value::boolean(true)}
-        }));
+        response.set_body(json::value::object({{U("message"), json::value::string(U("Login con Google exitoso"))},
+                                               {U("success"), json::value::boolean(true)}}));
         return response;
     }
     catch (const std::exception &e)
     {
         std::cerr << "❌ [googleLogin] Excepción: " << e.what() << std::endl;
         response.set_status_code(status_codes::BadRequest);
-        response.set_body(json::value::object({
-            {U("error"), json::value::string(U(e.what()))}
-        }));
+        response.set_body(json::value::object({{U("error"), json::value::string(U(e.what()))}}));
         return response;
     }
 }

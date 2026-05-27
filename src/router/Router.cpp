@@ -180,11 +180,11 @@ void Router::setup_routes()
                 Server::add_cors_headers(response);
 
                 // Añadir cookie si hay token
-                if (response.headers().has(U("X-Token"))) {
+/*                 if (response.headers().has(U("X-Token"))) {
                     auto token = response.headers()[U("X-Token")];
                     Server::add_cookie(response, utility::conversions::to_utf8string(token));
                     response.headers().remove(U("X-Token"));
-                }
+                } */
 
                 request.reply(response);
             } catch (const std::exception &e) {

@@ -49,7 +49,6 @@ std::optional<DecodedUser> AuthMiddleware::authenticateGoogleRequest(const http_
             std::cout << it->first << " : " << it->second.to_str() << std::endl;
         }
 
-
         // 3. Obtener JWKS desde Auth0 (con cache)
         std::string jwksUrl =
             "https://" + env.get("AUTH0_DOMAIN") + "/.well-known/jwks.json";
@@ -123,17 +122,57 @@ std::optional<DecodedUser> AuthMiddleware::authenticateGoogleRequest(const http_
 
 std::optional<DecodedUser> AuthMiddleware::authenticateRequest(const http_request &request)
 {
-    auto userOptGoogle = authenticateGoogleRequest(request);
-    if (userOptGoogle.has_value())
+    auto headers = request.headers();
+
+    if (!headers.has(U("Authorization")))
     {
-        return userOptGoogle;
+        std::cerr << "Falta el header Authorization\n";
+        return std::nullopt;
     }
 
-    auto userOptLocal = AuthUtils::getUserFromRequest(request);
-    if (userOptLocal.has_value())
+    auto authHeader = utility::conversions::to_utf8string(headers[U("Authorization")]);
+
+    if (authHeader.rfind("Bearer ", 0) != 0)
     {
-        return userOptLocal;
+        std::cerr << "Formato incorrecto del Authorization header\n";
+        return std::nullopt;
     }
 
-    return std::nullopt;
+    std::string token = authHeader.substr(7);
+
+    try
+    {
+        auto decoded = jwt::decode(token);
+
+        if (!decoded.has_payload_claim("iss"))
+        {
+            std::cerr << "Token sin issuer\n";
+            return std::nullopt;
+        }
+
+        std::string issuer = decoded.get_payload_claim("iss").as_string();
+
+        EnvLoader env(".env");
+        env.load();
+
+        std::string auth0Issuer = "https://" + env.get("AUTH0_DOMAIN") + "/";
+
+        if (issuer == auth0Issuer)
+        {
+            return authenticateGoogleRequest(request);
+        }
+
+        if (issuer == "tienda_del_alma")
+        {
+            return AuthUtils::getUserFromRequest(request);
+        }
+
+        std::cerr << "Issuer no reconocido: " << issuer << std::endl;
+        return std::nullopt;
+    }
+    catch (const std::exception &ex)
+    {
+        std::cerr << "Error autenticando token: " << ex.what() << std::endl;
+        return std::nullopt;
+    }
 }
