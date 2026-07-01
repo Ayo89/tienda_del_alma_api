@@ -22,9 +22,17 @@ public:
         double total,
         std::string idempotency_key,
         std::string paypal_order_id,
-        std::string status);
+        std::string status,
+        std::string reserved_items_json);
     std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> getPaymentAttemptsByOrderId(int order_id);
-    std::pair<bool, Errors> updatePaymentAttemptStatus(std::string& paypal_order_id, int order_id, int user_id, const std::string& status);
+    std::pair<bool, Errors> updatePaymentAttemptStatus(
+        std::string &paypal_order_id,
+        int order_id,
+        int user_id,
+        const std::string &status,
+        const std::string &new_paypal_order_id = ""); 
+    std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> getExpiredPendingAttempts(int minutesThreshold);
+    std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> getPendingAttemptsByOrderId(int order_id);
 };
 
 #endif

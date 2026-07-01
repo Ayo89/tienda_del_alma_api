@@ -159,6 +159,8 @@ void Router::setup_routes()
                             response = paypalController.createPayment(request, user.id);
                         else if (segments[2] == U("capture"))
                             response = paypalController.capturePayment(request, user.id);
+                        else if (segments[2] == U("release"))
+                            response = paypalController.releasePayment(request, user.id);
                         else
                             response = http_response(status_codes::NotFound);
                     }

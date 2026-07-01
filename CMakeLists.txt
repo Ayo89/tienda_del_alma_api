@@ -57,6 +57,7 @@ add_executable(tienda_del_alma
   src/model/PaymentAttemptModel.cpp
   src/model/CategoryModel.cpp
   src/model/InventoryModel.cpp
+  src/jobs/InventoryExpirationJob.cpp
   src/utils/UtilsOwner.cpp
   src/utils/JwksUtils.cpp
   src/services/PaypalService.cpp

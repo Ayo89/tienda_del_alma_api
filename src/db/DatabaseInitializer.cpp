@@ -40,8 +40,8 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "DROP TABLE IF EXISTS orders;",
             "DROP TABLE IF EXISTS inventory;",
             "DROP TABLE IF EXISTS products;",
-/*             "DROP TABLE IF EXISTS shipping_addresses;",
-            "DROP TABLE IF EXISTS billing_addresses;",  */
+            /*             "DROP TABLE IF EXISTS shipping_addresses;",
+                        "DROP TABLE IF EXISTS billing_addresses;",  */
             "DROP TABLE IF EXISTS categories;",
             "DROP TABLE IF EXISTS brands;",
             "DROP TABLE IF EXISTS carriers;",
@@ -213,9 +213,9 @@ bool DatabaseInitializer::initialize(bool forceInit)
             "idempotency_key VARCHAR(64) NOT NULL, "
             "paypal_order_id VARCHAR(100), "
             "status VARCHAR(50), "
+            "reserved_items JSON NULL, " // <-- también añade esto si no lo tienes
             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
-            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, "
-            "UNIQUE KEY unique_attempt (user_id, cart_hash)"
+            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
             ") ENGINE=InnoDB;";
     if (!executeQuery(query))
         return false;

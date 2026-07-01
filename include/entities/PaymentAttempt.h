@@ -14,6 +14,7 @@ struct PaymentAttempt
     std::string paypal_order_id;
     std::string status;
     std::string created_at;
+    std::string reserved_items_json; 
 };
 
 #endif

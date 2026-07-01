@@ -8,6 +8,8 @@
 #include <cpprest/json.h>
 #include <mutex>
 #include <condition_variable>
+#include "jobs/InventoryExpirationJob.h" 
+
 
 using namespace web;
 using namespace web::http;
@@ -25,37 +27,17 @@ int main()
         return 1;
     }
 
-
     std::string appPort = env.get("PORT", "8080");
     std::string serverAddressStr = "http://0.0.0.0:" + appPort;
     utility::string_t server_address = utility::conversions::to_string_t(serverAddressStr);
-
-    /*     DatabaseInitializer dbInitializer;
-        if (!dbInitializer.initialize(true))
-        {
-            std::cerr << "Error al inicializar la base de datos." << std::endl;
-            return 1;
-        }
-
-        std::cout << "Base de datos inicializada correctamente." << std::endl; */
-
-    /*     ProductModel productModel;
-        if (!productModel.insertSampleProducts())
-        {
-            wcout << L"Error: No se pudo insertar productos de muestra" << endl;
-        }
-
-        CarrierModel carrierModel;
-        if (!carrierModel.insertSampleCarriers())
-        {
-            wcout << L"Error: No se pudo insertar transportistas de muestra" << endl;
-        } */
 
     try
     {
         Server server(server_address);
         server.start();
 
+        startInventoryExpirationJob(); 
+        
         std::mutex mtx;
         std::condition_variable cv;
         std::unique_lock<std::mutex> lock(mtx);

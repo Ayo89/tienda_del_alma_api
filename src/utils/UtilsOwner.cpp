@@ -118,4 +118,44 @@ std::string UtilsOwner::hashCart(int order_id, double total, const std::vector<O
     return sha256(serialized);
 }
 
+std::string UtilsOwner::serializeItemsToJson(const std::vector<OrderItem> &items)
+{
+    web::json::value arr = web::json::value::array();
+    int i = 0;
+    for (const auto &item : items)
+    {
+        web::json::value obj = web::json::value::object();
+        obj[U("product_id")] = web::json::value::number(item.product_id);
+        obj[U("quantity")]   = web::json::value::number(item.quantity);
+        arr[i++] = obj;
+    }
+    return utility::conversions::to_utf8string(arr.serialize());
+}
+
+std::vector<OrderItem> UtilsOwner::parseReservedItems(const std::string &json_str)
+{
+    std::vector<OrderItem> items;
+    if (json_str.empty()) return items;
+
+    try
+    {
+        auto arr = web::json::value::parse(utility::conversions::to_string_t(json_str));
+        if (!arr.is_array()) return items;
+
+        for (const auto &obj : arr.as_array())
+        {
+            OrderItem item{};
+            item.product_id = obj.at(U("product_id")).as_integer();
+            item.quantity   = obj.at(U("quantity")).as_integer();
+            items.push_back(item);
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "parseReservedItems error: " << e.what() << std::endl;
+    }
+
+    return items;
+}
+
 //sha cart end

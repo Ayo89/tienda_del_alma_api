@@ -1,7 +1,9 @@
 #pragma once
 #include <optional>
 #include <vector>
-#include "entities/inventory.h" 
+#include "entities/inventory.h"
+#include "entities/OrderItem.h"
+#include "utils/Errors.h"
 
 class InventoryModel
 {
@@ -16,4 +18,7 @@ public:
 
     // Devuelve todos los productos con su inventario (id, sku, nombre, cantidad)
     std::vector<InventoryItem> getAllInventory();
+
+    std::pair<bool, Errors> reserveStockForItems(const std::vector<OrderItem> &items);
+    std::pair<bool, Errors> releaseStockForItems(const std::vector<OrderItem> &items);
 };

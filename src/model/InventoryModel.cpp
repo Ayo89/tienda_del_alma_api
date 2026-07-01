@@ -6,22 +6,26 @@
 
 InventoryModel::InventoryModel() {}
 
-std::optional<int> InventoryModel::getQuantityByProductId(int productId) {
+std::optional<int> InventoryModel::getQuantityByProductId(int productId)
+{
     DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
-    if (!conn || mysql_ping(conn) != 0) {
+    if (!conn || mysql_ping(conn) != 0)
+    {
         std::cerr << "Error: No active DB connection: " << mysql_error(conn) << std::endl;
         return std::nullopt;
     }
 
     const char *query = "SELECT quantity FROM inventory WHERE product_id = ?";
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
-    if (!stmt) {
+    if (!stmt)
+    {
         std::cerr << "Statement init failed: " << mysql_error(conn) << std::endl;
         return std::nullopt;
     }
 
-    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0) {
+    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    {
         std::cerr << "Prepare failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return std::nullopt;
@@ -29,15 +33,17 @@ std::optional<int> InventoryModel::getQuantityByProductId(int productId) {
 
     MYSQL_BIND param{};
     param.buffer_type = MYSQL_TYPE_LONG;
-    param.buffer = (void*)&productId;
+    param.buffer = (void *)&productId;
 
-    if (mysql_stmt_bind_param(stmt, &param) != 0) {
+    if (mysql_stmt_bind_param(stmt, &param) != 0)
+    {
         std::cerr << "Bind param failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return std::nullopt;
     }
 
-    if (mysql_stmt_execute(stmt) != 0) {
+    if (mysql_stmt_execute(stmt) != 0)
+    {
         std::cerr << "Execute failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return std::nullopt;
@@ -46,15 +52,17 @@ std::optional<int> InventoryModel::getQuantityByProductId(int productId) {
     int quantity = 0;
     MYSQL_BIND result{};
     result.buffer_type = MYSQL_TYPE_LONG;
-    result.buffer = (void*)&quantity;
+    result.buffer = (void *)&quantity;
 
-    if (mysql_stmt_bind_result(stmt, &result) != 0) {
+    if (mysql_stmt_bind_result(stmt, &result) != 0)
+    {
         std::cerr << "Bind result failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return std::nullopt;
     }
 
-    if (mysql_stmt_fetch(stmt) == 0) {
+    if (mysql_stmt_fetch(stmt) == 0)
+    {
         mysql_stmt_close(stmt);
         return quantity;
     }
@@ -63,22 +71,26 @@ std::optional<int> InventoryModel::getQuantityByProductId(int productId) {
     return std::nullopt;
 }
 
-bool InventoryModel::updateQuantity(int productId, int newQuantity) {
+bool InventoryModel::updateQuantity(int productId, int newQuantity)
+{
     DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
-    if (!conn || mysql_ping(conn) != 0) {
+    if (!conn || mysql_ping(conn) != 0)
+    {
         std::cerr << "Error: No active DB connection: " << mysql_error(conn) << std::endl;
         return false;
     }
 
     const char *query = "UPDATE inventory SET quantity = ? WHERE product_id = ?";
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
-    if (!stmt) {
+    if (!stmt)
+    {
         std::cerr << "Statement init failed: " << mysql_error(conn) << std::endl;
         return false;
     }
 
-    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0) {
+    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    {
         std::cerr << "Prepare failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return false;
@@ -89,19 +101,21 @@ bool InventoryModel::updateQuantity(int productId, int newQuantity) {
     memset(params, 0, sizeof(params));
 
     params[0].buffer_type = MYSQL_TYPE_LONG;
-    params[0].buffer = (void*)&data[0];
+    params[0].buffer = (void *)&data[0];
 
     params[1].buffer_type = MYSQL_TYPE_LONG;
-    params[1].buffer = (void*)&data[1];
+    params[1].buffer = (void *)&data[1];
 
-    if (mysql_stmt_bind_param(stmt, params) != 0) {
+    if (mysql_stmt_bind_param(stmt, params) != 0)
+    {
         std::cerr << "Bind params failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return false;
     }
 
     bool success = (mysql_stmt_execute(stmt) == 0);
-    if (!success) {
+    if (!success)
+    {
         std::cerr << "Execution failed: " << mysql_stmt_error(stmt) << std::endl;
     }
 
@@ -109,12 +123,14 @@ bool InventoryModel::updateQuantity(int productId, int newQuantity) {
     return success;
 }
 
-std::vector<InventoryItem> InventoryModel::getAllInventory() {
+std::vector<InventoryItem> InventoryModel::getAllInventory()
+{
     std::vector<InventoryItem> results;
 
     DatabaseConnection &db = DatabaseConnection::getInstance();
     MYSQL *conn = db.getConnection();
-    if (!conn || mysql_ping(conn) != 0) {
+    if (!conn || mysql_ping(conn) != 0)
+    {
         std::cerr << "Error: No active DB connection: " << mysql_error(conn) << std::endl;
         return results;
     }
@@ -125,18 +141,21 @@ std::vector<InventoryItem> InventoryModel::getAllInventory() {
         "INNER JOIN products p ON i.product_id = p.id";
 
     MYSQL_STMT *stmt = mysql_stmt_init(conn);
-    if (!stmt) {
+    if (!stmt)
+    {
         std::cerr << "Statement init failed: " << mysql_error(conn) << std::endl;
         return results;
     }
 
-    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0) {
+    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    {
         std::cerr << "Prepare failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return results;
     }
 
-    if (mysql_stmt_execute(stmt) != 0) {
+    if (mysql_stmt_execute(stmt) != 0)
+    {
         std::cerr << "Execute failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return results;
@@ -174,13 +193,15 @@ std::vector<InventoryItem> InventoryModel::getAllInventory() {
     result[3].buffer_type = MYSQL_TYPE_LONG;
     result[3].buffer = (void *)&quantity;
 
-    if (mysql_stmt_bind_result(stmt, result) != 0) {
+    if (mysql_stmt_bind_result(stmt, result) != 0)
+    {
         std::cerr << "Bind result failed: " << mysql_stmt_error(stmt) << std::endl;
         mysql_stmt_close(stmt);
         return results;
     }
 
-    while (mysql_stmt_fetch(stmt) == 0) {
+    while (mysql_stmt_fetch(stmt) == 0)
+    {
         InventoryItem item;
         item.productId = productId;
         item.sku = std::string(sku, len[1]);
@@ -191,4 +212,187 @@ std::vector<InventoryItem> InventoryModel::getAllInventory() {
 
     mysql_stmt_close(stmt);
     return results;
+}
+
+std::pair<bool, Errors> InventoryModel::reserveStockForItems(const std::vector<OrderItem> &items)
+{
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn || mysql_ping(conn) != 0)
+    {
+        std::cerr << "Error: No active DB connection: " << mysql_error(conn) << std::endl;
+        return { false, Errors::DatabaseError };
+    }
+
+    if (mysql_autocommit(conn, 0) != 0)
+    {
+        std::cerr << "Failed to start transaction: " << mysql_error(conn) << std::endl;
+        return { false, Errors::DatabaseError };
+    }
+
+    const char *query =
+        "UPDATE inventory SET quantity = quantity - ? "
+        "WHERE product_id = ? AND quantity >= ?";
+
+    for (const auto &item : items)
+    {
+        MYSQL_STMT *stmt = mysql_stmt_init(conn);
+        if (!stmt)
+        {
+            std::cerr << "Statement init failed: " << mysql_error(conn) << std::endl;
+            mysql_rollback(conn);
+            mysql_autocommit(conn, 1);
+            return { false, Errors::DatabaseError };
+        }
+
+        if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+        {
+            std::cerr << "Prepare failed: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_stmt_close(stmt);
+            mysql_rollback(conn);
+            mysql_autocommit(conn, 1);
+            return { false, Errors::DatabaseError };
+        }
+
+        int qty = item.quantity;
+        int productId = item.product_id; 
+
+        MYSQL_BIND params[3]{};
+        memset(params, 0, sizeof(params));
+
+        params[0].buffer_type = MYSQL_TYPE_LONG;
+        params[0].buffer = (void *)&qty;        // quantity - ?
+
+        params[1].buffer_type = MYSQL_TYPE_LONG;
+        params[1].buffer = (void *)&productId;  // WHERE product_id = ?
+
+        params[2].buffer_type = MYSQL_TYPE_LONG;
+        params[2].buffer = (void *)&qty;        // AND quantity >= ?
+
+        if (mysql_stmt_bind_param(stmt, params) != 0)
+        {
+            std::cerr << "Bind params failed: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_stmt_close(stmt);
+            mysql_rollback(conn);
+            mysql_autocommit(conn, 1);
+            return { false, Errors::DatabaseError };
+        }
+
+        if (mysql_stmt_execute(stmt) != 0)
+        {
+            std::cerr << "Execution failed: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_stmt_close(stmt);
+            mysql_rollback(conn);
+            mysql_autocommit(conn, 1);
+            return { false, Errors::DatabaseError };
+        }
+
+        my_ulonglong affectedRows = mysql_stmt_affected_rows(stmt);
+        mysql_stmt_close(stmt);
+
+        if (affectedRows == 0)
+        {
+            std::cerr << "Insufficient stock for product_id: " << productId << std::endl;
+            mysql_rollback(conn);
+            mysql_autocommit(conn, 1);
+            return { false, Errors::InsufficientStock };
+        }
+    }
+
+    if (mysql_commit(conn) != 0)
+    {
+        std::cerr << "Commit failed: " << mysql_error(conn) << std::endl;
+        mysql_rollback(conn);
+        mysql_autocommit(conn, 1);
+        return { false, Errors::DatabaseError };
+    }
+
+    mysql_autocommit(conn, 1);
+    return { true, Errors::NoError };
+}
+
+std::pair<bool, Errors> InventoryModel::releaseStockForItems(const std::vector<OrderItem> &items)
+{
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn || mysql_ping(conn) != 0)
+    {
+        std::cerr << "Error: No active DB connection: " << mysql_error(conn) << std::endl;
+        return { false, Errors::DatabaseError };
+    }
+
+    if (mysql_autocommit(conn, 0) != 0)
+    {
+        std::cerr << "Failed to start transaction: " << mysql_error(conn) << std::endl;
+        return { false, Errors::DatabaseError };
+    }
+
+    const char *query = "UPDATE inventory SET quantity = quantity + ? WHERE product_id = ?";
+
+    for (const auto &item : items)
+    {
+        MYSQL_STMT *stmt = mysql_stmt_init(conn);
+        if (!stmt)
+        {
+            std::cerr << "Statement init failed: " << mysql_error(conn) << std::endl;
+            mysql_rollback(conn);
+            mysql_autocommit(conn, 1);
+            return { false, Errors::DatabaseError };
+        }
+
+        if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+        {
+            std::cerr << "Prepare failed: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_stmt_close(stmt);
+            mysql_rollback(conn);
+            mysql_autocommit(conn, 1);
+            return { false, Errors::DatabaseError };
+        }
+
+        int qty = item.quantity;
+        int productId = item.product_id;
+
+        MYSQL_BIND params[2]{};
+        memset(params, 0, sizeof(params));
+
+        params[0].buffer_type = MYSQL_TYPE_LONG;
+        params[0].buffer = (void *)&qty;        // quantity + ?
+
+        params[1].buffer_type = MYSQL_TYPE_LONG;
+        params[1].buffer = (void *)&productId;  // WHERE product_id = ?
+
+        if (mysql_stmt_bind_param(stmt, params) != 0)
+        {
+            std::cerr << "Bind params failed: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_stmt_close(stmt);
+            mysql_rollback(conn);
+            mysql_autocommit(conn, 1);
+            return { false, Errors::DatabaseError };
+        }
+
+        if (mysql_stmt_execute(stmt) != 0)
+        {
+            std::cerr << "Execution failed: " << mysql_stmt_error(stmt) << std::endl;
+            mysql_stmt_close(stmt);
+            mysql_rollback(conn);
+            mysql_autocommit(conn, 1);
+            return { false, Errors::DatabaseError };
+        }
+
+        mysql_stmt_close(stmt);
+        // No comprobamos affectedRows == 0 como error de negocio aquí:
+        // si fuera 0 significaría que el product_id no existe en inventory,
+        // lo cual sería un problema de datos, no de stock insuficiente.
+    }
+
+    if (mysql_commit(conn) != 0)
+    {
+        std::cerr << "Commit failed: " << mysql_error(conn) << std::endl;
+        mysql_rollback(conn);
+        mysql_autocommit(conn, 1);
+        return { false, Errors::DatabaseError };
+    }
+
+    mysql_autocommit(conn, 1);
+    return { true, Errors::NoError };
 }
