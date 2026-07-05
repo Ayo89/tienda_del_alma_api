@@ -19,5 +19,6 @@ public:
     std::optional<User> findUserById(int user_id);
     std::optional<User> findUserByEmail(const std::string &email);
     std::optional<User> findUserByEmailAndProvider(const std::string &email, const std::string &auth_provider);
+    std::optional<User> findUserByAuthId(const std::string &auth_id); 
 };
 #endif

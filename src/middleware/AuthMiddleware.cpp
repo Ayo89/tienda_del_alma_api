@@ -101,11 +101,11 @@ std::optional<DecodedUser> AuthMiddleware::authenticateGoogleRequest(const http_
             user.email = decoded.get_payload_claim("email").as_string();
         }
 
-        // 6. Buscar en base de datos
-        const auto dbUserOpt = userController.getUserByEmail(user.email);
+        // 6. Buscar en base de datos por auth_id (sub), ya que el access token no siempre trae email
+        const auto dbUserOpt = userController.getUserByAuthId(user.sub);
         if (!dbUserOpt.has_value())
         {
-            std::cerr << "Usuario no encontrado en la base de datos: " << user.email << std::endl;
+            std::cerr << "Usuario no encontrado en la base de datos: " << user.sub << std::endl;
             return std::nullopt;
         }
         const auto &dbUser = dbUserOpt.value();

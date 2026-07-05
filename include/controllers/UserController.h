@@ -23,6 +23,7 @@ public:
 
     std::optional<User> getUserById(int user_id);
     std::optional<User> getUserByEmail(const std::string &email);
+    std::optional<User> getUserByAuthId(const std::string &auth_id);
 };
 
 #endif

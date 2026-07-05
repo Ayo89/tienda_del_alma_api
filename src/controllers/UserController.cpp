@@ -51,3 +51,17 @@ std::optional<User> UserController::getUserByEmail(const std::string &email)
     }
     return userOpt;
 }
+
+std::optional<User> UserController::getUserByAuthId(const std::string &auth_id)
+{
+    auto userOpt = model.findUserByAuthId(auth_id);
+    if (userOpt)
+    {
+        std::cout << "Usuario encontrado por auth_id: " << userOpt->email << std::endl;
+    }
+    else
+    {
+        std::cout << "auth_id " << auth_id << " no encontrado." << std::endl;
+    }
+    return userOpt;
+}
