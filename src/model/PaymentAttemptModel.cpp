@@ -654,3 +654,89 @@ std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> PaymentAttempModel
 
     return {attempts, Errors::NoError};
 }
+
+std::pair<bool, Errors> PaymentAttempModel::tryLockAttemptForCapture(
+    const std::string &paypal_order_id,
+    int order_id,
+    int user_id,
+    int minutesThreshold)
+{
+    DatabaseConnection &db = DatabaseConnection::getInstance();
+    MYSQL *conn = db.getConnection();
+    if (!conn)
+    {
+        std::cerr << "Failed to get database connection" << std::endl;
+        return std::make_pair(false, Errors::DatabaseConnectionFailed);
+    }
+
+    const char *query =
+        "UPDATE payment_attempts "
+        "SET status = 'CAPTURING' "
+        "WHERE paypal_order_id = ? "
+        "  AND order_id = ? "
+        "  AND user_id = ? "
+        "  AND status = 'PENDING' "
+        "  AND created_at > NOW() - INTERVAL ? MINUTE";
+
+    MYSQL_STMT *stmt = mysql_stmt_init(conn);
+    if (!stmt)
+    {
+        std::cerr << "Failed to initialize statement" << std::endl;
+        return std::make_pair(false, Errors::StatementInitFailed);
+    }
+    auto stmt_guard = std::unique_ptr<MYSQL_STMT, decltype(&mysql_stmt_close)>(stmt, mysql_stmt_close);
+
+    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
+    {
+        std::cerr << "Failed to prepare statement: " << mysql_error(conn) << std::endl;
+        return std::make_pair(false, Errors::StatementPrepareFailed);
+    }
+
+    MYSQL_BIND bind[4];
+    memset(bind, 0, sizeof(bind));
+
+    unsigned long paypal_id_len = paypal_order_id.size();
+
+    bind[0].buffer_type = MYSQL_TYPE_STRING;
+    bind[0].buffer = (char *)paypal_order_id.c_str();
+    bind[0].buffer_length = paypal_id_len;
+    bind[0].length = &paypal_id_len;
+
+    bind[1].buffer_type = MYSQL_TYPE_LONG;
+    bind[1].buffer = (void *)&order_id;
+
+    bind[2].buffer_type = MYSQL_TYPE_LONG;
+    bind[2].buffer = (void *)&user_id;
+
+    bind[3].buffer_type = MYSQL_TYPE_LONG;
+    bind[3].buffer = (void *)&minutesThreshold;
+
+    if (mysql_stmt_bind_param(stmt, bind) != 0)
+    {
+        std::cerr << "Failed to bind parameters in tryLockAttemptForCapture: "
+                  << mysql_error(conn) << std::endl;
+        return std::make_pair(false, Errors::BindParamFailed);
+    }
+
+    if (mysql_stmt_execute(stmt) != 0)
+    {
+        std::cerr << "Failed to execute statement in tryLockAttemptForCapture: "
+                  << mysql_error(conn) << std::endl;
+        return std::make_pair(false, Errors::ExecutionFailed);
+    }
+
+    my_ulonglong affected = mysql_stmt_affected_rows(stmt);
+
+    if (affected == 0)
+    {
+        // No había ningún attempt PENDING vigente que coincidiera:
+        // ya expiró, ya lo capturó otro proceso, o ya cambió de estado.
+        std::cout << "[tryLockAttemptForCapture] No se pudo bloquear: 0 filas afectadas "
+                  << "para paypal_order_id=" << paypal_order_id << std::endl;
+        return std::make_pair(false, Errors::NoRowsAffected);
+    }
+
+    std::cout << "[tryLockAttemptForCapture] Lock adquirido correctamente para paypal_order_id="
+              << paypal_order_id << std::endl;
+    return std::make_pair(true, Errors::NoError);
+}

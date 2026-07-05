@@ -231,6 +231,18 @@ web::http::http_response PaypalController::capturePayment(const web::http::http_
 
     PaypalService paypalService;
     PaymentAttempModel paymentAttemptModel;
+
+    auto [lockAcquired, lockError] = paymentAttemptModel.tryLockAttemptForCapture(
+        order_id_paypal, order_id, user_id, 5);
+
+    if (!lockAcquired)
+    {
+        response.set_status_code(web::http::status_codes::Conflict); // 409
+        web::json::value body;
+        body[U("error")] = web::json::value::string(U("RESERVATION_EXPIRED"));
+        response.set_body(body);
+        return response; // 👈 no llegamos a llamar a PayPal
+    }
     try
     {
         auto captureResponse = paypalService.capturePayment(order_id_paypal);
@@ -262,6 +274,7 @@ web::http::http_response PaypalController::capturePayment(const web::http::http_
     }
     catch (const std::exception &e)
     {
+        paymentAttemptModel.updatePaymentAttemptStatus(order_id_paypal, order_id, user_id, "PENDING");
         response.set_status_code(web::http::status_codes::InternalError);
         response.set_body(U("Error processing payment: ") + utility::conversions::to_string_t(e.what()));
     }

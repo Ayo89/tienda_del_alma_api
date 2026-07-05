@@ -33,6 +33,11 @@ public:
         const std::string &new_paypal_order_id = ""); 
     std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> getExpiredPendingAttempts(int minutesThreshold);
     std::pair<std::optional<std::vector<PaymentAttempt>>, Errors> getPendingAttemptsByOrderId(int order_id);
+    std::pair<bool, Errors> tryLockAttemptForCapture(
+    const std::string &paypal_order_id,
+    int order_id,
+    int user_id,
+    int minutesThreshold = 5);
 };
 
 #endif
